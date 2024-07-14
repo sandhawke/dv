@@ -1,46 +1,47 @@
 #!/bin/bash
 
-tests=()
-for i in chmod cp dd df du ln ls mkdir mv touch
-do
-  tests+=("file-$i")
-done
-for i in cat cut head od sort split tail tr uniq wc
-do
-  tests+=("text-$i")
-done
-for i in grep find tar awk gzip
-do
-  tests+=("hard-$i")
-done
-for i in ffmpeg busybox bash gcc python
-do
-  tests+=("extreme-$i")
-done
-
-# echo TESTS "${tests[@]}"
-
-# Function to perform glob matching
-match_glob() {
-    local pattern=$1
-    echo using arg "$pattern"
-    for str in "${tests[@]}"; do
-        if [[ $str == $pattern ]]; then
-            echo "Match for '$pattern': $str"
-        fi
-    done
-}
-
 # Check if arguments are provided
 if [ $# -eq 0 ]; then
-    echo "Usage: $0 <glob_pattern1> [glob_pattern2 ...]"
-    echo "       $0 <unix-command1> [unix-command2 ...]"
-    echo "Example: $0 'hard-*' ssh"
-    echo "Standard test patterns "${tests[@]}"
+    echo "Usage: $0 [group] <command1> [command22 ...]"
+    echo ""
+    echo "groups: FILE, TEXT, EASY, HARD, EXTREME, ALL"
+    echo "Example: $0 cat tee"
+    echo "Example: $0 FILE"
     exit 1
 fi
 
-# Iterate through all provided patterns
-for pattern in "$@"; do
-    match_glob "$pattern"
+run() {
+  local cmd=$1
+  echo TESTING $cmd
+  echo '<done>'
+}
+
+for arg in "$@"; do
+    matched=''
+    if [ "$arg" == "EASY" -o "$arg" == "ALL" ]; then
+      for i in tee; do run "$i"; done
+      matched=1
+    fi
+    if [ "$arg" == "HARD" -o "$arg" == "ALL" ]; then
+      for i in grep find tar awk gzip; do run "$i"; done
+      matched=1
+    fi
+    if [ "$arg" == "EXTREME" -o "$arg" == "ALL" ]; then
+      for i in ffmpeg busybox bash gcc python; do run "$i"; done
+      matched=1
+    fi
+    if [ "$arg" == "FILE" -o "$arg" == "ALL" ]; then
+      for i in chmod cp dd df du ln ls mkdir mv touch; do run "$i"; done
+      matched=1
+    fi
+    if [ "$arg" == "TEXT" -o "$arg" == "ALL" ]; then
+      for i in cat cut head od sort split tail tr uniq wc; do run "$i"; done
+      matched=1
+    fi
+    if [ -n "$matched" ]; continue
+    if man "$arg" > /dev/null; then
+      run "$arg"
+    else
+      echo "... skipping '$arg'"
+    fi   
 done
