@@ -9,7 +9,8 @@ cd "$WD0"
 WD="$PWD"
 
 usage() {
-    local self=$(basename "$0")
+    local self
+    self=$(basename "$0")
     cat <<-EOF
 Usage: $self [KEYWORD]...]
 Test the dv system by asking it to re-implement the given unix command(s)
