@@ -55,6 +55,7 @@ Read these to see examples of using the others:
 * dv-easy - go through the steps to create code, expending a low level of resources
 * dv-medium - go through the steps to create code, expending a medium level of resources
 * dv-hard - go through the steps to create code, expending a high level of resources
+* dv-auto - tries to guage the right level or resources
 
 ### Developing specs
 
@@ -100,10 +101,7 @@ For our baseline testing, we select a few well-known unix commands which run as 
 
 On advantage of this approach is we can see if the test suite accepts the system implementations.
 
-dv-self-test COMMAND-or-PATTERN...
-
-* tests are named like file-* text-* hard-* extreme-*
-
-Makes dv-self-test.DATE and puts the output there
-
-
+```terminal
+$ dv-self-test TEXT
+... runs the ten textutil tests
+```

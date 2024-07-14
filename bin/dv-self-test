@@ -1,47 +1,59 @@
 #!/bin/bash
 
-# Check if arguments are provided
-if [ $# -eq 0 ]; then
-    echo "Usage: $0 [group] <command1> [command22 ...]"
+set -e
+
+WD0=_out-dv-self-test-/$(date -u +"%Y-%m-%dT%H%M%S")
+mkdir -p $WD0
+cd $WD0
+WD=$PWD
+
+# Function to display usage information
+usage() {
+    echo "Usage: $0 [group] <command1> [command2 ...]"
     echo ""
-    echo "groups: FILE, TEXT, EASY, HARD, EXTREME, ALL"
+    echo "Groups: FILE, TEXT, EASY, HARD, EXTREME, ALL"
     echo "Example: $0 cat tee"
     echo "Example: $0 FILE"
     exit 1
-fi
-
-run() {
-  local cmd=$1
-  echo TESTING $cmd
-  echo '<done>'
 }
 
+run() {
+    local cmd=$1
+    echo "TESTING $cmd"
+    cd $WD
+    mkdir "$cmd"
+    cd "$cmd"
+    mkdir input
+    zcat $(man -w "$cmd") > input/spec.troff
+    man "$cmd" > input/spec.txt
+    pwd
+    dv-auto
+    echo '<done>'
+}
+
+# Check if arguments are provided
+if [ $# -eq 0 ]; then
+    usage
+fi
+
+# Define command groups
+declare -A groups
+groups[EASY]="tee"
+groups[HARD]="grep find tar awk gzip"
+groups[EXTREME]="ffmpeg busybox bash gcc python"
+groups[FILE]="chmod cp dd df du ln ls mkdir mv touch"
+groups[TEXT]="cat cut head od sort split tail tr uniq wc"
+groups[ALL]="${groups[EASY]} ${groups[HARD]} ${groups[EXTREME]} ${groups[FILE]} ${groups[TEXT]}"
+
+# Process arguments
 for arg in "$@"; do
-    matched=''
-    if [ "$arg" == "EASY" -o "$arg" == "ALL" ]; then
-      for i in tee; do run "$i"; done
-      matched=1
-    fi
-    if [ "$arg" == "HARD" -o "$arg" == "ALL" ]; then
-      for i in grep find tar awk gzip; do run "$i"; done
-      matched=1
-    fi
-    if [ "$arg" == "EXTREME" -o "$arg" == "ALL" ]; then
-      for i in ffmpeg busybox bash gcc python; do run "$i"; done
-      matched=1
-    fi
-    if [ "$arg" == "FILE" -o "$arg" == "ALL" ]; then
-      for i in chmod cp dd df du ln ls mkdir mv touch; do run "$i"; done
-      matched=1
-    fi
-    if [ "$arg" == "TEXT" -o "$arg" == "ALL" ]; then
-      for i in cat cut head od sort split tail tr uniq wc; do run "$i"; done
-      matched=1
-    fi
-    if [ -n "$matched" ]; continue
-    if man "$arg" > /dev/null; then
-      run "$arg"
+    if [[ -v "groups[$arg]" ]]; then
+        for cmd in ${groups[$arg]}; do
+            run "$cmd"
+        done
+    elif man -w "$arg" > /dev/null; then
+        run "$arg"
     else
-      echo "... skipping '$arg'"
-    fi   
+        echo "... skipping '$arg' (no man page found to use as program spec)"
+    fi
 done
