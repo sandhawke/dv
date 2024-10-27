@@ -198,14 +198,15 @@ class LLMClient {
 
   async* streamFromLLM(messages) {
     try {
-      const stream = await this.client.messages.create({
+      const response = await this.client.messages.create({
         model: DEFAULT_MODEL,
         max_tokens: DEFAULT_MAX_TOKENS,
-        messages: messages.messages
+        messages: messages.messages,
+        stream: true
       });
 
-      for await (const chunk of stream) {
-        if (chunk.type === 'content_block_delta' && chunk.delta.text) {
+      for await (const chunk of response) {
+        if (chunk.type === 'message_delta' && chunk.delta?.text) {
           yield chunk.delta.text;
         }
       }
