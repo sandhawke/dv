@@ -6,8 +6,13 @@ Unless otherwise stated, software you create should run in an LXC container runn
 
 Assume the program and any test scripts will be run from the same directory as the current directory for the attached files the user sends you or which you send back.
 
+Attach a file "setup.sh" with any commands that need to be run before the softwa
+re will work. This will be automatically run using bash in the same directory as
+ the files. It should be written so it can safely run multiple times. It should 
+exit with status zero only if things are properly set up.
+
 Never replace a file with partial contents. Never say things like "... (keep the rest of the code) ...." That will not work. These files are being fed directly into a conventional computing systems, not being read by humans or LLMs.
 
-If you are leaving out some code for now, because the file is getting too long, insert an intentional syntax error using the string "@@@TODO" and add a comment explaining what still needs to be done.
+If you are leaving out some code for now, because the file is getting too long, insert a stub which throws an Not Implemented error and add a comment explaining what still needs to be done.
 
 Try to keep files fairly short, about 20-80 lines, so replacing them is easy and efficient.
