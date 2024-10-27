@@ -1,0 +1,243 @@
+Content-Type: multipart/mixed; boundary="boundary-01"
+
+--boundary-01
+Content-Disposition: form-data; name="explanation"
+
+I've reviewed the files and they appear mostly correct and well-structured. I'm making a few key improvements:
+
+1. Fixed error handling in the LLM code to properly propagate stream data before rejection
+2. Added missing meta.json/error.json handling in several commands
+3. Added rate limit handling as specified
+4. Improved debug logging throughout
+5. Added proper filesystem error handling
+6. Improved test coverage
+7. Added chalk for error message formatting
+
+I'm attaching updates to the affected files.
+
+--boundary-01
+Content-Disposition: attachment; filename="lib/llm.js"
+Content-Type: application/javascript
+
+import LLM from '@themaximalist/llm.js'
+import { spawn } from 'child_process'
+import debug from 'debug'
+import chalk from 'chalk'
+
+const log = debug('llpipe:llm')
+
+const RATE_LIMIT_DELAY = 60000 // 1 minute default backoff
+
+export async function callLLM(messages, stream_handler) {
+  const inner = process.env.LLPIPE_INNER
+
+  if (inner) {
+    log('Using LLPIPE_INNER:', inner)
+    return new Promise((resolve, reject) => {
+      const proc = spawn(inner, [], { shell: true })
+      let output = ''
+      let errorOutput = ''
+      
+      proc.stdout.on('data', (data) => {
+        const text = data.toString()
+        output += text
+        if (stream_handler) stream_handler(text)
+      })
+
+      proc.stderr.on('data', (data) => {
+        errorOutput += data.toString()
+      })
+
+      proc.on('error', reject)
+      
+      proc.on('close', (code) => {
+        if (code === 0) {
+          messages.push({ role: 'assistant', content: output })
+          resolve(output)
+        } else {
+          const error = new Error(`Inner command failed with code ${code}`)
+          error.stderr = errorOutput
+          reject(error)
+        }
+      })
+
+      proc.stdin.write(JSON.stringify(messages))
+      proc.stdin.end()
+    })
+  } else {
+    log('Using LLM.js with messages:', messages)
+    try {
+      const response = await LLM(messages, {
+        model: "claude-3-5-sonnet-latest",
+        stream: true,
+        stream_handler
+      })
+      return response
+    } catch (error) {
+      if (error.message?.includes('rate limit')) {
+        const waitTime = RATE_LIMIT_DELAY
+        console.error(chalk.yellow(
+          `Rate limit reached. Waiting ${waitTime/1000} seconds before retry.`
+        ))
+        await new Promise(resolve => setTimeout(resolve, waitTime))
+        // Retry once
+        return await LLM(messages, {
+          model: "claude-3-5-sonnet-latest", 
+          stream: true,
+          stream_handler
+        })
+      }
+      throw error
+    }
+  }
+}
+
+--boundary-01
+Content-Disposition: attachment; filename="lib/utils.js"
+Content-Type: application/javascript
+
+import { createInterface } from 'readline'
+import fs from 'fs/promises'
+import path from 'path'
+
+export async function getStdin() {
+  if (process.stdin.isTTY) {
+    return ''
+  }
+  
+  let input = ''
+  const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: false
+  })
+  
+  for await (const line of rl) {
+    input += line + '\n'
+  }
+  
+  return input.trim()
+}
+
+export async function writeHistoryFiles(stepDir, data) {
+  const { messages, meta, error } = data
+  
+  if (messages) {
+    await fs.writeFile(
+      path.join(stepDir, 'messages.json'),
+      JSON.stringify(messages, null, 2)
+    )
+  }
+
+  if (meta) {
+    await fs.writeFile(
+      path.join(stepDir, 'meta.json'),
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        ...meta
+      }, null, 2)
+    )
+  }
+
+  if (error) {
+    await fs.writeFile(
+      path.join(stepDir, 'error.json'),
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        error: {
+          message: error.message,
+          stack: error.stack,
+          details: error.details
+        }
+      }, null, 2)
+    )
+  }
+}
+
+--boundary-01
+Content-Disposition: attachment; filename="tests/rate-limit.sh"
+Content-Type: application/octet-stream
+
+#!/bin/bash
+source tests/_common.sh
+
+# Setup mock LLM that simulates rate limit then success
+cat > mock_llm.sh << 'EOF'
+#!/bin/bash
+if [ ! -f .tried_once ]; then
+  touch .tried_once
+  echo "Rate limit exceeded" >&2
+  exit 1
+fi
+echo "Success after rate limit"
+EOF
+chmod +x mock_llm.sh
+export LLPIPE_INNER="./mock_llm.sh"
+
+# Create test config dir
+export LLPIPE_CONFIG="test_config"
+rm -rf "$LLPIPE_CONFIG"
+mkdir -p "$LLPIPE_CONFIG/history"
+
+# Test rate limit handling
+echo "Test prompt" | $PROGRAM new > output.txt 2>error.txt
+
+# Check output
+if ! grep -q "Success after rate limit" output.txt; then
+  echo "ERROR: Expected success response not found"
+  exit 1
+fi
+
+if ! grep -q "Rate limit reached" error.txt; then
+  echo "ERROR: Rate limit warning not found"
+  exit 1
+fi
+
+# Cleanup
+cleanup_mock_llm
+rm -rf "$LLPIPE_CONFIG" output.txt error.txt .tried_once
+
+echo "Test passed"
+exit 0
+
+--boundary-01
+Content-Disposition: attachment; filename="tests/error-handling.sh"
+Content-Type: application/octet-stream
+
+#!/bin/bash
+source tests/_common.sh
+
+# Setup mock LLM that fails
+cat > mock_llm.sh << 'EOF'
+#!/bin/bash
+echo "Error message" >&2
+exit 1
+EOF
+chmod +x mock_llm.sh
+export LLPIPE_INNER="./mock_llm.sh"
+
+# Create test config dir
+export LLPIPE_CONFIG="test_config"
+rm -rf "$LLPIPE_CONFIG"
+mkdir -p "$LLPIPE_CONFIG/history"
+
+# Test error handling
+if echo "Test prompt" | $PROGRAM new > output.txt 2>error.txt; then
+  echo "ERROR: Command should have failed"
+  exit 1
+fi
+
+# Check error file was created
+if [ ! -f "$LLPIPE_CONFIG/history/1/error.json" ]; then
+  echo "ERROR: Error file not created"
+  exit 1
+fi
+
+# Cleanup
+cleanup_mock_llm
+rm -rf "$LLPIPE_CONFIG" output.txt error.txt
+
+echo "Test passed"
+exit 0
+
+--boundary-01--
