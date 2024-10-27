@@ -188,28 +188,30 @@ class LLMClient {
     }
   }
 
-  async* streamResponse(messages) {
+  async getResponse(messages) {
     if (process.env.LLPIPE_INNER) {
-      yield* this.streamFromInnerCommand(messages);
+      return await this.getFromInnerCommand(messages);
     } else {
-      yield* this.streamFromLLM(messages);
+      return await this.getFromLLM(messages);
     }
   }
 
-  async* streamFromLLM(messages) {
+  async getFromLLM(messages) {
     try {
       const response = await this.client.messages.create({
         model: DEFAULT_MODEL,
         max_tokens: DEFAULT_MAX_TOKENS,
-        messages: messages.messages,
-        stream: true
+        messages: messages.messages
       });
-
-      for await (const chunk of response) {
-        if (chunk.type === 'message_delta' && chunk.delta?.text) {
-          yield chunk.delta.text;
-        }
+      
+      if (!response.content || response.content.length === 0) {
+        throw new Error('Empty response from LLM');
       }
+
+      const text = response.content[0].text;
+      process.stdout.write(text);
+      return text;
+
     } catch (error) {
       if (error.error?.type === 'rate_limit_error') {
         const retryAfter = error.error?.retry_after || 60;
@@ -219,41 +221,38 @@ class LLMClient {
           `Will resume at ${retryDate.toLocaleTimeString()}`
         );
         await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-        yield* this.streamFromLLM(messages);
-      } else {
-        throw error;
+        return await this.getFromLLM(messages);
       }
+      throw error;
     }
   }
 
-  async* streamFromInnerCommand(messages) {
-    const child = spawn(process.env.LLPIPE_INNER, { shell: true });
-    let output = '';
-    
-    try {
-      await pipeline(
-        async function*() {
-          yield JSON.stringify(messages);
-        },
-        child.stdin
-      );
-
-      for await (const chunk of child.stdout) {
-        const text = chunk.toString();
+  async getFromInnerCommand(messages) {
+    return new Promise((resolve, reject) => {
+      const child = spawn(process.env.LLPIPE_INNER, { shell: true });
+      let output = '';
+      
+      child.stdout.on('data', (data) => {
+        const text = data.toString();
+        process.stdout.write(text);
         output += text;
-        yield text;
-      }
-
-      const code = await new Promise((resolve) => {
-        child.on('close', resolve);
       });
-
-      if (code !== 0) {
-        throw new Error(`Inner command failed with code ${code}`);
-      }
-    } catch (error) {
-      throw new Error(`Inner command error: ${error.message}`);
-    }
+      
+      child.stderr.on('data', (data) => {
+        console.error(`Inner command error: ${data}`);
+      });
+      
+      child.on('close', (code) => {
+        if (code === 0) {
+          resolve(output);
+        } else {
+          reject(new Error(`Inner command failed with code ${code}`));
+        }
+      });
+      
+      child.stdin.write(JSON.stringify(messages));
+      child.stdin.end();
+    });
   }
 }
 
@@ -362,14 +361,9 @@ async function main() {
     newHistoryId = await config.getNextHistoryId();
     const llm = new LLMClient();
     
-    // Stream response
-    let response = '';
-    for await (const chunk of llm.streamResponse(messages)) {
-      process.stdout.write(chunk);
-      response += chunk;
-    }
+    // Get response and save history
+    const response = await llm.getResponse(messages);
     
-    // Save history
     messages.messages.push({
       role: 'assistant',
       content: response
