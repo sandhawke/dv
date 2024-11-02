@@ -1,0 +1,40 @@
+#!/bin/bash
+#  -*-mode: sh-mode -*-
+set -euo pipefail
+
+usage() {
+    local self
+    self=$(basename "$0")
+    cat <<-EOF
+Usage: $self [options] <previous-version-id>
+Set up a directory tree with data from a previous version and run a command
+to modify the state, thus creating a new version. Supports multiple versioning
+schemes:
+ - in mode "git", check that we're in a clean git directory, make the changes, then
+   do git add -all; git commit -m$COMMIT_MESSAGE". The message comes from
+   .commit_message or is a placeholder.
+ - in mode "uuid", make a directory .dv/versions/$id, where $id is a new uuid. Copy
+   the previous contents there. Set .dv/versions/latest as symlink to point here.
+ - in mode "seq", same as uuid, except use next higher sequential integer, starting
+   with 1
+
+<previous-version-id> depends on which versioning scheme, but always allows
+"null" (empty tree), "first", and "latest", in addition to specific ids.
+
+options:
+  --exec=<shell command>  Shell command to run, defaults to "bash -i"
+  --mode=git/seq/uuid     Overrides settings, specify versioning system
+  --save-id=<filename     Where to write the id of this version
+
+
+
+Examples:
+  $self --exec='npm init -y' null
+
+EOF
+}
+
+if [ $# -eq 0 ]; then
+    usage
+    exit 1
+fi
