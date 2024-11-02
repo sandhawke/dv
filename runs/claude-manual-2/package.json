@@ -1,0 +1,18 @@
+{
+  "name": "claude-manual-2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Sandro Hawke (http://hawke.org/sandro)",
+  "license": "UNLICENSED",
+  "type": "module",
+  "dependencies": {
+    "ignore": "^6.0.2",
+    "istextorbinary": "^9.5.0",
+    "mime-types": "^2.1.35"
+  }
+}
