@@ -1,157 +1,215 @@
 #!/usr/bin/env node
 
-import { parseMultipartBoundary } from 'parse-multipart';
-import { promises as fs } from 'fs';
+import { readFile, writeFile, stat, utimes } from 'fs/promises';
+import { existsSync } from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { basename, join, resolve, relative } from 'path';
+import { dirname } from 'path';
+import { mkdir } from 'fs/promises';
 import { createInterface } from 'readline';
-import ignore from 'ignore';
-import { Buffer } from 'buffer';
+import { createReadStream } from 'fs';
+import minimist from 'minimist';
 
 const execAsync = promisify(exec);
 
-async function readInput(filename) {
-  if (filename === '-') {
-    const chunks = [];
-    for await (const chunk of process.stdin) chunks.push(chunk);
-    return Buffer.concat(chunks);
-  }
-  return fs.readFile(filename);
-}
-
-async function loadGitignore(excludeFile) {
-  const ig = ignore();
-  ig.add('.git'); // Implicit pattern
-
-  try {
-    if (excludeFile) {
-      const patterns = await fs.readFile(excludeFile, 'utf8');
-      ig.add(patterns);
-    } else if (await fs.access('.gitignore').then(() => true).catch(() => false)) {
-      const patterns = await fs.readFile('.gitignore', 'utf8');
-      ig.add(patterns);
+async function loadExcludePatterns(excludeFromFile) {
+  let patterns = ['.git']; // Always exclude .git
+  
+  if (excludeFromFile) {
+    try {
+      const content = await readFile(excludeFromFile, 'utf8');
+      patterns = patterns.concat(content.split('\n').filter(line => line.trim() && !line.startsWith('#')));
+    } catch (err) {
+      console.error(`Error reading exclude patterns file: ${err.message}`);
+      process.exit(1);
     }
-  } catch (err) {
-    console.error('Warning: Error loading ignore patterns:', err.message);
+  } else if (existsSync('.gitignore')) {
+    try {
+      const content = await readFile('.gitignore', 'utf8');
+      patterns = patterns.concat(content.split('\n').filter(line => line.trim() && !line.startsWith('#')));
+    } catch (err) {
+      console.error(`Error reading .gitignore: ${err.message}`);
+      process.exit(1);
+    }
   }
   
-  return ig;
+  return patterns;
 }
 
-async function isGitTrackedAndClean(filepath) {
+function isPathExcluded(path, patterns) {
+  // Simple pattern matching - could be enhanced with proper gitignore syntax
+  return patterns.some(pattern => {
+    if (pattern.startsWith('/')) {
+      return path.startsWith(pattern.slice(1));
+    }
+    return path.includes(pattern);
+  });
+}
+
+async function isFileGitTrackedAndClean(filepath) {
   try {
     // Check if file is tracked
-    await execAsync(`git ls-files --error-unmatch "${filepath}"`);
-    
+    const { stdout: trackedOutput } = await execAsync(`git ls-files --error-unmatch "${filepath}"`);
+    if (!trackedOutput.trim()) return false;
+
     // Check if file has uncommitted changes
-    const { stdout } = await execAsync(`git status --porcelain "${filepath}"`);
-    return stdout.length === 0;
+    const { stdout: statusOutput } = await execAsync(`git status --porcelain "${filepath}"`);
+    return !statusOutput.trim();
   } catch {
     return false;
   }
 }
 
-async function processFile(data) {
-  // Find boundary from headers
-  const headerEnd = data.indexOf('\r\n\r\n');
-  if (headerEnd === -1) throw new Error('Invalid MIME format: no headers found');
-  
-  const headers = data.slice(0, headerEnd).toString();
-  const boundaryMatch = headers.match(/boundary=(?:"([^"]+)"|([^;\s]+))/i);
-  if (!boundaryMatch) throw new Error('No boundary found in MIME headers');
-  
-  const boundary = boundaryMatch[1] || boundaryMatch[2];
-  const parts = parseMultipartBoundary(data, boundary);
-  
-  return parts.map(part => {
-    const disposition = part.headers['content-disposition'];
-    if (!disposition) return null;
-    
-    const nameMatch = disposition.match(/(?:file)?name=(?:"([^"]+)"|([^;\s]+))/i);
-    if (!nameMatch) return null;
-    
-    const filename = nameMatch[1] || nameMatch[2];
-    const isFormField = !disposition.includes('filename=');
-    const targetPath = isFormField ? join('form-fields', filename) : filename;
-    
-    let content = part.data;
-    if (part.headers['content-transfer-encoding']?.toLowerCase() === 'base64') {
-      content = Buffer.from(content.toString(), 'base64');
-    }
-    
-    const lastModified = part.headers['last-modified'] ? 
-      new Date(part.headers['last-modified']) : null;
-    
-    const mode = part.headers['content-type']?.includes('application/x-executable') ? 
-      0o755 : 0o644;
-    
-    return { targetPath, content, lastModified, mode };
-  }).filter(Boolean);
+function decodeBase64(str) {
+  return Buffer.from(str, 'base64');
+}
+
+async function ensureDirectoryExists(filepath) {
+  const dir = dirname(filepath);
+  await mkdir(dir, { recursive: true });
 }
 
 async function main() {
-  const args = process.argv.slice(2);
-  const options = {
-    force: args.includes('--force'),
-    patch: args.includes('--patch'),
-    preserve: args.includes('--preserve'),
-    excludeFrom: args.find(arg => arg.startsWith('--exclude-from='))?.split('=')[1]
-  };
+  const argv = minimist(process.argv.slice(2));
   
-  const filename = args.find(arg => !arg.startsWith('--'));
-  if (!filename) {
-    console.error('Usage: unpackmime [--force] [--patch] [--preserve] [--exclude-from=FILE] FILENAME|-');
+  if (argv._.length !== 1) {
+    console.error('Usage: unpackmime [--force] [--patch] [--preserve] [--exclude-from=file] filename');
     process.exit(1);
   }
 
-  try {
-    const data = await readInput(filename);
-    const ig = await loadGitignore(options.excludeFrom);
-    const parts = await processFile(data);
-    
-    // Safety checks
-    for (const { targetPath } of parts) {
-      const resolvedPath = resolve(targetPath);
-      const relativePath = relative(process.cwd(), resolvedPath);
-      
-      if (relativePath.startsWith('..')) {
-        throw new Error(`Security error: ${targetPath} would be outside current directory`);
-      }
-      
-      if (ig.ignores(relativePath)) {
-        throw new Error(`${targetPath} matches ignore pattern`);
-      }
-      
-      if (!options.force && !options.patch) {
-        if (await fs.access(targetPath).then(() => true).catch(() => false)) {
-          if (!(options.patch && await isGitTrackedAndClean(targetPath))) {
-            throw new Error(`${targetPath} already exists (use --force to overwrite)`);
-          }
-        }
-      }
+  const filename = argv._[0];
+  const force = argv.force;
+  const patch = argv.patch;
+  const preserve = argv.preserve;
+  const excludeFromFile = argv['exclude-from'];
+
+  const excludePatterns = await loadExcludePatterns(excludeFromFile);
+  
+  // First pass: collect all parts and validate paths
+  const parts = [];
+  let boundary = null;
+  let currentPart = null;
+  
+  const input = filename === '-' ? process.stdin : createReadStream(filename);
+  const rl = createInterface({ input });
+
+  for await (let line of rl) {
+    line = line.trimRight(); // Handle both CRLF and LF
+    console.log({line})
+
+    if (!boundary && line.startsWith('--')) {
+      boundary = line;
+      continue;
     }
-    
-    // Process files
-    for (const { targetPath, content, lastModified, mode } of parts) {
-      await fs.mkdir(dirname(targetPath), { recursive: true });
-      await fs.writeFile(targetPath, content);
-      await fs.chmod(targetPath, mode);
-      
-      if (options.preserve && lastModified) {
-        try {
-          await fs.utimes(targetPath, lastModified, lastModified);
-        } catch (err) {
-          console.error(`Warning: Could not set mtime for ${targetPath}: ${err.message}`);
-        }
+
+    if (boundary && line === boundary) {
+      if (currentPart) {
+        parts.push(currentPart);
       }
+      currentPart = { headers: {}, content: [] };
+      continue;
     }
-  } catch (err) {
-    if (err.message.includes('Unexpected end of multipart data')) {
-      console.error('\x1b[31mWarning: Archive appears to be truncated, processing available parts\x1b[0m');
+
+    if (boundary && line === boundary + '--') {
+      if (currentPart) {
+        parts.push(currentPart);
+      }
+      break;
+    }
+
+    if (!currentPart) continue;
+
+    if (line === '') {
+      currentPart.inBody = true;
+      continue;
+    }
+
+    if (!currentPart.inBody) {
+      const match = line.match(/^([\w-]+):\s*(.+)$/i);
+      if (match) {
+        const [_, name, value] = match;
+        currentPart.headers[name.toLowerCase()] = value;
+      }
     } else {
-      console.error(err.message);
+      currentPart.content.push(line);
+    }
+  }
+
+  if (currentPart && currentPart.inBody) {
+    console.warn('\x1b[31mWarning: MIME archive appears to be truncated\x1b[0m');
+    parts.push(currentPart);
+  }
+
+  // Process and validate all parts before writing any files
+  const filesToWrite = [];
+
+  for (const part of parts) {
+    const disposition = part.headers['content-disposition'];
+    if (!disposition) continue;
+
+    let filename = disposition.match(/(?:filename|name)="([^"]+)"/);
+    if (!filename) continue;
+    filename = filename[1];
+
+    // Handle form fields
+    if (disposition.startsWith('form-data;')) {
+      filename = `form-fields/${filename}`;
+    }
+
+    // Validate path
+    if (filename.includes('..') || filename.startsWith('/')) {
+      console.error(`Error: Invalid path ${filename}`);
       process.exit(1);
+    }
+
+    if (isPathExcluded(filename, excludePatterns)) {
+      console.error(`Error: Path ${filename} matches exclude pattern`);
+      process.exit(1);
+    }
+
+    let content = part.content.join('\n');
+    if (part.headers['content-transfer-encoding']?.toLowerCase() === 'base64') {
+      content = decodeBase64(content);
+    } else {
+      content = Buffer.from(content);
+    }
+
+    // Check if file exists
+    if (existsSync(filename)) {
+      if (!force && !patch) {
+        console.error(`Error: File ${filename} already exists`);
+        process.exit(1);
+      }
+      if (patch && !(await isFileGitTrackedAndClean(filename))) {
+        console.error(`Error: File ${filename} exists and has uncommitted changes`);
+        process.exit(1);
+      }
+    }
+
+    const fileInfo = {
+      filename,
+      content,
+      mode: disposition.includes('executable') ? 0o755 : 0o644,
+      mtime: null
+    };
+
+    if (preserve) {
+      const lastMod = part.headers['last-modified'];
+      if (lastMod) {
+        fileInfo.mtime = new Date(lastMod);
+      }
+    }
+
+    filesToWrite.push(fileInfo);
+  }
+
+  // Write all files
+  for (const file of filesToWrite) {
+    console.err({file})
+    await ensureDirectoryExists(file.filename);
+    await writeFile(file.filename, file.content, { mode: file.mode });
+    if (file.mtime) {
+      await utimes(file.filename, file.mtime, file.mtime);
     }
   }
 }
@@ -160,3 +218,11 @@ main().catch(err => {
   console.error(err);
   process.exit(1);
 });
+
+
+
+
+
+
+
+
