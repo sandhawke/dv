@@ -1,4 +1,13 @@
 import { createInterface } from 'node:readline';
+import debug from 'debug';
+
+const log = {
+  parser: debug('mime:parser'),
+  boundary: debug('mime:boundary'),
+  headers: debug('mime:headers'),
+  content: debug('mime:content'),
+  parts: debug('mime:parts')
+};
 
 export async function* parseMimeMultipart(stream) {
   const reader = createInterface({
@@ -35,20 +44,21 @@ export async function* parseMimeMultipart(stream) {
       part.filename = nameMatch[1];
     }
     
+    log.parts('Created part:', part);
     return part;
   }
   
   for await (const rawLine of reader) {
-    console.log(`Processing line: [${rawLine}] (state: ${state})`);
     const line = rawLine.trimRight();
+    log.parser('Processing line: [%s] (state: %s)', line, state);
     
     // Look for initial boundary
     if (!boundary) {
       if (line.startsWith('--') && !line.startsWith('----')) {
-        console.log(`Found initial boundary: [${line}]`);
         boundary = line;
         state = 'HEADERS';
         resetPart();
+        log.boundary('Found initial boundary: [%s]', boundary);
         continue;
       }
       continue;
@@ -56,15 +66,15 @@ export async function* parseMimeMultipart(stream) {
     
     // Handle boundaries
     if (line === boundary || line === boundary + '--') {
-      console.log(`Found boundary marker [${line}] with header count: ${Object.keys(headers).length}`);
+      log.boundary('Found boundary marker [%s] with header count: %d', line, Object.keys(headers).length);
       if (content.length > 0 || Object.keys(headers).length > 0) {
         const part = createPart();
-        console.log('Yielding part:', JSON.stringify(part, null, 2));
         yield part;
       }
       
       if (line === boundary + '--') {
         isComplete = true;
+        log.parser('End of archive');
         break;
       }
       
@@ -76,7 +86,7 @@ export async function* parseMimeMultipart(stream) {
     // Process headers
     if (state === 'HEADERS') {
       if (line === '') {
-        console.log('End of headers:', headers);
+        log.headers('End of headers:', headers);
         state = 'CONTENT';
         continue;
       }
@@ -85,16 +95,16 @@ export async function* parseMimeMultipart(stream) {
       if (match) {
         const [, name, value] = match;
         headers[name.toLowerCase()] = value;
-        console.log(`Found header: ${name.toLowerCase()} = ${value}`);
+        log.headers('Found header: %s = %s', name.toLowerCase(), value);
       } else {
-        console.log(`Skipping invalid header line: [${line}]`);
+        log.headers('Skipping invalid header line: [%s]', line);
       }
       continue;
     }
     
     // Process content
     if (state === 'CONTENT') {
-      console.log(`Adding content line: [${line}]`);
+      log.content('Adding content line: [%s]', line);
       content.push(line);
     }
   }
@@ -103,7 +113,7 @@ export async function* parseMimeMultipart(stream) {
   if (!isComplete && (content.length > 0 || Object.keys(headers).length > 0)) {
     console.error('\x1b[31mWarning: Archive appears to be truncated\x1b[0m');
     const part = createPart();
-    console.log('Yielding truncated part:', JSON.stringify(part, null, 2));
+    log.parser('Yielding truncated part');
     yield part;
   }
 }
