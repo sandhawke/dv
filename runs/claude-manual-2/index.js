@@ -44,7 +44,7 @@ function generateBoundary(files) {
   let collision;
   
   do {
-    boundary = `--boundary-${String(num).padStart(2, '0')}`;
+    boundary = `boundary-${String(num).padStart(2, '0')}`;
     collision = false;
     
     for (const file of files) {
