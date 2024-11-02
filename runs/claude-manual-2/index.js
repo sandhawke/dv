@@ -47,6 +47,7 @@ function generateBoundary(files) {
     boundary = `boundary-${String(num).padStart(2, '0')}`;
     collision = false;
     
+    // Check both files and form field contents for boundary collisions
     for (const file of files) {
       try {
         const content = readFileSync(file);
@@ -58,6 +59,17 @@ function generateBoundary(files) {
         // Skip files we can't read
       }
     }
+    
+    // Also check form field values for boundary collisions
+    if (!collision) {
+      for (const [_, value] of formFields) {
+        if (value.includes(boundary)) {
+          collision = true;
+          break;
+        }
+      }
+    }
+    
     num++;
   } while (collision);
   
