@@ -1,35 +1,32 @@
 # dv - shell scripts to use LLMs for coding
 
-These make heavy use of llpipe and plainpack, which make it pretty easy to work with LLMs from the command line.
+These scripts grow out of using a `packmime | llpipe | unpackmime` toolchain in collaborating with AI. They basically just enhance that toolchain.
 
-These scripts are meant to be easy to undestand and play with, so everyone can try to figure out how to make the best use of LLMs in software development.
+These scripts are meant to be easy to understand and play with, so everyone can try to figure out how to make the best use of LLMs in software development.
 
-The directory structure is important. dv should be run from a new directory for each project, called PROJECT_DIR in the scripts. This should have a subdirectory $PROJECT_DIR/input with all the files you want the LLM to start with, such as your spec, example code, any code that's already written, and documentation for any APIs it needs to work with.
-
-*ISSUE*: If you tweak ./input, can we propagate those changes nicely, keeping good work that's been done? What about if you add a manual instruction along the way?
-
-New subdirectories of PROJECT_DIR will be created as dv does its work, showing what it's come up with. One subdirectory, $PROJECT_DIR/latest will be a copy of the output from the latest run, so you can sit in that directory and watch things change as iterations run. Go back up to PROJECT_DIR to see the iterations as separate subdirectories.
-
-*ISSUE*: Should we use git branches instead of subdirectories? Let's try this first, and someone with more experience in teams using LLMs with git can make a git version.
+These scripts generally assume you're in a project directory of some kind that's also a cloned git repo. They feel okay modifying git-clean content. Sometimes they make multiple subdirectory copies, to explore alternatives in parallel. Usually that would be under .dv so it wouldn't be confused with project content.
 
 **Concurrency warning**: These scripts keep state in files, and if two people (or you working two windows) run commands that modify state, things could get very confused. Run the scripts in one window, and maybe look at the results in other windows.  Much of the state is in llpipe's history files, written in the $PROJECT_DIR/.llpipe directory. (It is fine to work on separate project dirs at the same time.)
 
 ## Demo
 
 ```terminal
-$ mkdir dv-demo
-$ cd dv-demo
-$ mkdir input
-$ cat <<_END > input/README.md
-This is portmon, a CLI tool to display an overview of network traffic on the
-current machine, showing what ports are being used by which programs, and their
-traffic levels.'
-_END
 $ export ANTHROPIC_API_KEY="sk-ant-api03-..."
-$ dv-medium
-$ #... go get coffee while Claude writes a test suite and code to pass it
-$ latest/bin/portmon
+$ pushd $(mktemp -d)
+$ echo "This is a re-implementation of 'tee' based on the man page" > README.md
+$ echo "node_modules" >> .gitignore
+$ echo "_from_developer" >> .gitignore
+$ dv-coding-setup
+$ git init
+$ git add --all
+$ git commit -m'initial commit'
+$ dv-coding-step
+$ dv-coding-step
+$ dv-coding-step
+...
 ```
+
+There are some older scripts like dv-self-test that need to be updated
 
 ## Installation
 
@@ -46,47 +43,13 @@ echo 'export PATH="$PATH:/path/to/where/you/put/dv/bin"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-## Commands
-
-### All-in-one
-
-Read these to see examples of using the others:
-
-* dv-easy - go through the steps to create code, expending a low level of resources
-* dv-medium - go through the steps to create code, expending a medium level of resources
-* dv-hard - go through the steps to create code, expending a high level of resources
-* dv-auto - tries to guage the right level or resources
-
-### Developing specs
-
-These can be skipped if you have a solid spec.
-
-You need to start with some guidance, at least a few words saying generally what you want. Put this in some file(s) like ./input/README.md or ./input/docs/spec.md. The more detailed you can be, the more likely you are to get something you want.
-
-* dv-spec-new - start a chat to flesh out a spec
-* dv-spec-improve - add to a chat, asking for improvements
-
-It's good to read over what's been produced and make sure it's what you want implemented.
-
-### Developing tests
-
-* dv-tests-new - start a chat to create or revise a test suite
-* dv-tests-improve - add to a chat, asking for improvements
-* dv-tests-synth - start a chat looking at multiple test suites, hoping to take the best of all of them
-
-### Developing code
-
-* dv-code-new
-* dv-code-improve
-* dv-tests-run - run a test suite
-* dv-code-debug
-* dv-code-synth
-
 ## Security
 
-We generally run untrusted code inside an LXC container to provide some degree of isolation.
+Only run this stuff on an untrusted machine!!!
 
-## Evaluating dv
+It would be good to include an LXC system to do that automatically for you.
+
+## Evaluating dv (not working)
 
 When you change dv's logic or its prompts, how do you know if you've made an improvement? Can you tell which LLMs are better? There's some real randomness in LLM execution that makes them hard to measure.
 
