@@ -1,12 +1,12 @@
 # dv - shell scripts to use LLMs for coding
 
-These scripts grow out of using a `packmime | llpipe | unpackmime` toolchain in collaborating with AI. They basically just enhance that toolchain.
+These scripts grow out of using a `packmime | llpipe | unpackmime` toolchain in collaborating with AI. They basically just enhance that toolchain with some conventions and prompts which use those conventions.
 
 These scripts are meant to be easy to understand and play with, so everyone can try to figure out how to make the best use of LLMs in software development.
 
-These scripts generally assume you're in a project directory of some kind that's also a cloned git repo. They feel okay modifying git-clean content. Sometimes they make multiple subdirectory copies, to explore alternatives in parallel. Usually that would be under .dv so it wouldn't be confused with project content.
+These scripts generally assume you're in a project directory of some kind that's also a cloned git repo. They feel okay modifying git-clean content and maybe commiting changes. Sometimes they make multiple subdirectory copies, to explore alternatives in parallel. Usually that would be under .dv so it wouldn't be confused with project content.
 
-**Concurrency warning**: These scripts keep state in files, and if two people (or you working two windows) run commands that modify state, things could get very confused. Run the scripts in one window, and maybe look at the results in other windows.  Much of the state is in llpipe's history files, written in the $PROJECT_DIR/.llpipe directory. (It is fine to work on separate project dirs at the same time.)
+**Concurrency warning**: These scripts keep state in files, and if two people (or you working two windows) run commands that modify state, things could get very confused. Run the scripts in one window, and maybe look at the results in other windows.
 
 ## Demo
 
@@ -28,26 +28,32 @@ $ dv-coding-step
 
 There are some older scripts like dv-self-test that need to be updated
 
+## Security
+
+Only run this stuff on an untrusted machine, like a fresh cloud host.
+
+It would be good to include an LXC system to do that automatically for you.
+
 ## Installation
 
-To install, clone the repo then add its bin directory to your path. No compilation is required as all tools are shell scripts. You will need /bin/bash on your system, along with llpipe and plainpack.
+To install, clone the repo then add its bin directory to your path. No compilation is required as all tools are shell scripts. You will need /bin/bash on your system, along with a few other shell commands.
 
 1. Clone the repository:
-```
+```terminal
 git clone https://github.com/sandhawke/dv.git
 ```
 
 2. Add the `bin` directory to your PATH:
-```
+```terminal
 echo 'export PATH="$PATH:/path/to/where/you/put/dv/bin"' >> ~/.bashrc
 source ~/.bashrc
 ```
+3. Install the dependencies:
+```terminal
+npm install -g llpipe packmime unpackmime
+```
 
-## Security
-
-Only run this stuff on an untrusted machine!!!
-
-It would be good to include an LXC system to do that automatically for you.
+Alternatively, you can try re-creating the dependencies using AI. Prompts for doing so are in ./bootstrap.
 
 ## Evaluating dv (not working)
 
