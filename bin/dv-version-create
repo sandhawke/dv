@@ -223,10 +223,10 @@ finalize_version() {
         git)
             local commit_message
             if [ -f ".commit_message" ]; then
-                commit_message=$(cat ".commit_message")
+                commit_message="[AI] $(cat .commit_message)"
                 log "Using commit message from .commit_message"
             else
-                commit_message="Executed: $EXEC_CMD (via $(basename "$0"))"
+                commit_message="[dv exec] $EXEC_CMD"
                 log "Using default commit message"
             fi
             log "Committing changes"
