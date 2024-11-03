@@ -25,7 +25,7 @@ tmpfile="$tmpdir/out.mime"
 # Process instructions using packmime and llpipe
 packmime \
     instructions="Please carefully read and follow all the instructions in the attached files in $PROMPTS" \
-    "$PROMPTS"/* \
+    "$PROMPTS" * \
     | time llpipe - > "$tmpfile"
 
 # Output temporary file path for debugging
@@ -35,4 +35,4 @@ echo "Output written to: $tmpfile"
 dv-version-create --exec="unpackmime $tmpfile" latest
 
 # Cleanup temporary directory on exit
-trap 'echo CONSIDER: rm -rf "$tmpdir"' EXIT
+trap 'echo [dv-promptset-run] SKIPPING CLEANUP: rm -rf "$tmpdir"' EXIT
