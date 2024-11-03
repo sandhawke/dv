@@ -1,5 +1,19 @@
 #!/bin/bash
 
+## FAILS on bin: { wc: .... }
+if false; then
+if [ -z "$PROGRAM" ]; then
+    if [ -f package.json ]; then
+        file=$(jq -r '.bin // .main' package.json)
+        export PROGRAM="node $file"
+        echo "PROGRAM set to '$PROGRAM'"
+    else
+        echo "PROGRAM not set and no package.json" >&2
+        exit 1
+    fi
+fi
+fi
+   
 # Create output directory if it doesn't exist
 mkdir -p _to_developer/test-results
 

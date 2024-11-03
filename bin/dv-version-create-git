@@ -1,0 +1,85 @@
+#!/bin/bash
+set -euo pipefail
+
+# Source common functions
+source "$(dirname "$0")/../lib/dv-version-functions.sh"
+
+# Function to check git status thoroughly
+check_git_status() {
+    log "Checking git repository status"
+    # Check if we're in a git repository
+    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        echo "Error: Not in a git repository" >&2
+        exit 1
+    fi
+
+    # Check for untracked files
+    if [ -n "$(git ls-files --others --exclude-standard)" ]; then
+        echo "Error: Untracked files present" >&2
+        exit 1
+    fi
+
+    # Check for modified files
+    if [ -n "$(git diff --name-only)" ]; then
+        echo "Error: Modified files present" >&2
+        exit 1
+    fi
+
+    # Check for staged changes
+    if [ -n "$(git diff --cached --name-only)" ]; then
+        echo "Error: Staged changes present" >&2
+        exit 1
+    fi
+    log "Git repository is clean"
+}
+
+# Function to create and finalize git version
+create_git_version() {
+    local prev_version="$1"
+
+    # Handle special version IDs
+    if [ "$prev_version" = "latest" ]; then
+        prev_version=$(git rev-parse HEAD)
+        log "Latest version resolved to commit $prev_version"
+    elif [ "$prev_version" = "null" ]; then
+        log "Starting from null (empty) version"
+    fi
+
+    # Check repository status
+    check_git_status
+
+    # Write initial save file
+    if [ -n "$SAVE_ID" ]; then
+        log "Writing initial version ID to $SAVE_ID"
+        echo "pending-commit" > "$SAVE_ID"
+    fi
+
+    # Execute the command
+    log "Executing command in current directory"
+    eval "$EXEC_CMD"
+
+    # Commit changes
+    local commit_message
+    if [ -f "_from_developer/commit-message" ]; then
+        commit_message="[AI] $(cat _from_developer/commit-message)"
+        log "Using commit message from .commit_message"
+    else
+        commit_message="[dv exec] $EXEC_CMD"
+        log "Using default commit message"
+    fi
+
+    log "Committing changes"
+    git add -A
+    git commit -m "$commit_message"
+    local version=$(git rev-parse HEAD)
+    log "Created commit $version"
+
+    # Update save file with actual commit hash
+    if [ -n "$SAVE_ID" ]; then
+        log "Updating save file with actual commit hash"
+        echo "$version" > "$SAVE_ID"
+    fi
+}
+
+# Run main
+create_git_version "$PREV_VERSION"

@@ -1,7 +1,4 @@
 #!/bin/bash
-#  -*-mode: sh-mode -*-
+# -*-mode: sh-mode -*-
 set -euo pipefail
-script_dir=$(dirname "$(readlink -f '$0')")
-source "$script_dir/lib/functions.sh"
 
-exit 0

@@ -1,0 +1,47 @@
+#!/bin/bash
+#  --mode: sh-mode --
+set -euo pipefail
+
+# until we have a version of llpipe that stashes this reliably, then
+# we could just have this be a pipe
+
+infile=$( mktemp --tmpdir dv-general-step-in-XXXXXX.mime)
+outfile=$(mktemp --tmpdir dv-general-step-out-XXXXXX.mime)
+
+trap "echo [$0] SKIPPING CLEANUP: rm $infile $outfile" EXIT
+
+echo "[$0] Using $infile $outfile" >&2
+
+export PROMPT="
+You are an expert software developer tasked with enhancing the software with precision and intent. To fulfill this, follow these steps:
+
+1. **Deeply Examine** the current software, project specifications, and coding environment documentation.
+2. **Gather Insights** from recent searches, feedback, and automated analysis tools to understand context and nuances.
+3. **Implement Thoughtful Changes** by modifying files to advance project goals with clarity and rigor.
+4. **Signal the Next Steps** to the communal environment—whether that’s a batch of further changes, an external review, or deployment to QA.
+
+If the basic implementation seems to be working, and you see it passing tests, think about which elements of the specified functionality might not be implemented yet and add them. Also, consider whether there are core functions that are not fully tested, or edge cases which should be tested and add tests to handle those.
+
+Do not make files larger than 16k bytes, and do not have the test scripts leave such files behind.
+
+Check for open issues in doc/open-issues, and once you've addressed them, move them to doc/closed-issues, with some explanation.
+
+For testing, you can set environment variables by putting lines like DEBUG=foo:bar in _from_developer/setenv
+
+If everything seems done, with all features implemented, all features tested, and you've waited to see the tests run, and they run correctly, then write a file: _from_developer/ready-to-deploy
+
+Be sure to honor the instructions in 'docs/coding-environment/response-format.md' when you reply. This is very important. For your work to be used, you must follow the mime-multipart format as stated.
+"
+
+echo "$0" >&2
+echo Running $0 in $(pwd)
+echo Current files are $(find .)
+
+dv-coding-pre
+packmime instructions=$"$PROMPT" * > $infile
+echo Sending request to LLM... >&2
+time llpipe <$infile >$outfile
+unpackmime --patch $outfile
+dv-coding-post
+
+echo "[$0] Using $infile $outfile" >&2

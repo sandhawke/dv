@@ -1,0 +1,29 @@
+#!/bin/bash
+# -*-mode: sh-mode -*-
+set -euo pipefail
+
+source "$(dirname "$0")/../lib/load-env.sh"
+
+rm -rf _to_developer
+
+env='_from_developer/setenv'
+if [ -f "$env" ]; then
+    load_env "$env"
+fi
+
+# a bit risky?
+if [ -f setup.sh ]; then
+    bash setup.sh
+fi
+
+if [ ! -d _to_developer/test-results ]; then
+   dv-testing-run || echo "One or more tests failed"
+fi
+
+# optional web search
+
+# optional experiment
+
+# ...etc
+
+rm -rf _from_developer

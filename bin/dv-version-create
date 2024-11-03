@@ -1,5 +1,4 @@
 #!/bin/bash
-#  -*-mode: sh-mode -*-
 set -euo pipefail
 
 # Default values
@@ -8,29 +7,8 @@ SAVE_ID=""
 PREV_VERSION=""
 QUIET=false
 
-# Diagnostic output function
-log() {
-    if [ "$QUIET" = false ]; then
-        # Use gray color (8-bit color code 240)
-        echo -e "\033[38;5;240mdv-version-create: $*\033[0m" >&2
-    fi
-}
-
-# Function to find highest sequential number in a directory
-find_highest_seq() {
-    local dir="$1"
-    if [ ! -d "$dir" ]; then
-        echo "0"
-        return
-    fi
-    local highest
-    highest=$(ls -1 "$dir" | grep -E '^[0-9]+$' | sort -n | tail -n 1)
-    if [ -z "$highest" ]; then
-        echo "0"
-    else
-        echo "$highest"
-    fi
-}
+# Source common functions
+source "$(dirname "$0")/../lib/dv-version-functions.sh"
 
 usage() {
     local self
@@ -102,200 +80,25 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-log "Operating in $MODE mode"
-
 # Check for required argument
 if [ -z "$PREV_VERSION" ]; then
     usage
     exit 1
 fi
 
-# Function to generate new version ID based on mode
-generate_version_id() {
-    case "$MODE" in
-        git)
-            # For git mode, we'll use the commit hash that will be generated
-            echo "pending-commit"
-            ;;
-        uuid)
-            uuidgen
-            ;;
-        seq)
-            echo $(($(find_highest_seq ".dv/versions") + 1))
-            ;;
-    esac
-}
+# Export variables needed by mode-specific scripts
+export EXEC_CMD SAVE_ID PREV_VERSION QUIET
 
-# Function to check git status more thoroughly
-check_git_status() {
-    log "Checking git repository status"
-    # Check if we're in a git repository
-    if ! git rev-parse --git-dir > /dev/null 2>&1; then
-        echo "Error: Not in a git repository" >&2
-        exit 1
-    fi
-    
-    # Check for untracked files
-    if [ -n "$(git ls-files --others --exclude-standard)" ]; then
-        echo "Error: Untracked files present" >&2
-        exit 1
-    fi
-    
-    # Check for modified files
-    if [ -n "$(git diff --name-only)" ]; then
-        echo "Error: Modified files present" >&2
-        exit 1
-    fi
-    
-    # Check for staged changes
-    if [ -n "$(git diff --cached --name-only)" ]; then
-        echo "Error: Staged changes present" >&2
-        exit 1
-    fi
-    log "Git repository is clean"
-}
-
-# Function to update the 'latest' symlink
-update_latest_symlink() {
-    local new_version="$1"
-    local latest_link=".dv/versions/latest"
-    
-    # Remove existing symlink if it exists
-    if [ -L "$latest_link" ]; then
-        log "Removing existing 'latest' symlink"
-        rm "$latest_link"
-    elif [ -e "$latest_link" ]; then
-        # If it exists but isn't a symlink, that's an error
-        echo "Error: $latest_link exists but is not a symlink" >&2
-        exit 1
-    fi
-    
-    log "Creating new 'latest' symlink to $new_version"
-    ln -s "$new_version" "$latest_link"
-}
-
-# Function to handle version initialization
-init_version() {
-    local src_path="$1"
-    local new_version="$2"
-
-    case "$MODE" in
-        git)
-            check_git_status
-            ;;
-        uuid|seq)
-            log "Creating version directory .dv/versions/$new_version"
-            mkdir -p ".dv/versions/$new_version"
-            if [ "$src_path" != "null" ]; then
-                if [ "$src_path" = "latest" ]; then
-                    src_path=$(find_highest_seq ".dv/versions")
-                    log "Latest version resolved to $src_path"
-                fi
-                if [ -d ".dv/versions/$src_path" ]; then
-                    log "Copying content from version $src_path"
-                    # Build rsync exclude options
-                    local rsync_opts=(-a --quiet --exclude='.git' --exclude='.commit-message' --exclude='.dv')
-                    if [ -f ".gitignore" ]; then
-                        log "Using .gitignore exclusions"
-                        rsync_opts+=(--exclude-from='.gitignore')
-                    fi
-                    rsync "${rsync_opts[@]}" ".dv/versions/$src_path/" ".dv/versions/$new_version/"
-                fi
-            else
-                log "Starting with empty directory (null previous version)"
-            fi
-            update_latest_symlink "$new_version"
-            ;;
-    esac
-
-    # Write save file as soon as we have the ID
-    if [ -n "$SAVE_ID" ]; then
-        log "Writing version ID to $SAVE_ID"
-        echo "$new_version" > "$SAVE_ID"
-    fi
-}
-
-# Function to finalize version
-finalize_version() {
-    local version="$1"
-    
-    case "$MODE" in
-        git)
-            local commit_message
-            if [ -f ".commit_message" ]; then
-                commit_message="[AI] $(cat .commit_message)"
-                log "Using commit message from .commit_message"
-            else
-                commit_message="[dv exec] $EXEC_CMD"
-                log "Using default commit message"
-            fi
-            log "Committing changes"
-            git add -A
-            git commit -m "$commit_message"
-            version=$(git rev-parse HEAD)
-            log "Created commit $version"
-            # Update save file with actual commit hash if it exists
-            if [ -n "$SAVE_ID" ]; then
-                log "Updating save file with actual commit hash"
-                echo "$version" > "$SAVE_ID"
-            fi
-            ;;
-    esac
-}
-
-# Function to enter interactive shell
-enter_shell() {
-    local version_dir="$1"
-    log "Entering interactive shell in $version_dir"
-    log "Exit the shell to complete version creation"
-    cd "$version_dir"
-    eval "$EXEC_CMD"
-    log "Shell exited"
-}
-
-# Main execution
-main() {
-    # Handle special version IDs
-    case "$PREV_VERSION" in
-        null)
-            PREV_VERSION="null"
-            log "Starting from null (empty) version"
-            ;;
-        latest)
-            if [ "$MODE" = "git" ]; then
-                PREV_VERSION=$(git rev-parse HEAD)
-                log "Latest version resolved to commit $PREV_VERSION"
-            else
-                PREV_VERSION=$(find_highest_seq ".dv/versions")
-                log "Latest version resolved to sequence number $PREV_VERSION"
-            fi
-            ;;
-    esac
-
-    # Generate new version ID
-    NEW_VERSION=$(generate_version_id)
-    log "Created new version ID: $NEW_VERSION"
-
-    # Initialize new version
-    init_version "$PREV_VERSION" "$NEW_VERSION"
-
-    # Execute the command in appropriate directory
-    case "$MODE" in
-        git)
-            log "Executing command in current directory"
-            eval "$EXEC_CMD"
-            ;;
-        *)
-            enter_shell ".dv/versions/$NEW_VERSION"
-            ;;
-    esac
-
-    # Finalize version
-    finalize_version "$NEW_VERSION"
-    log "Version creation complete"
-}
-
-# Run main if not being sourced
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    main
-fi
+# Call appropriate mode-specific script
+script_dir=$(dirname "$0")
+case "$MODE" in
+    git)
+        exec "$script_dir/dv-version-create-git" "$PREV_VERSION"
+        ;;
+    seq)
+        exec "$script_dir/dv-version-create-seq" "$PREV_VERSION"
+        ;;
+    uuid)
+        exec "$script_dir/dv-version-create-uuid" "$PREV_VERSION"
+        ;;
+esac
