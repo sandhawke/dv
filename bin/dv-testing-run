@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# Create output directory if it doesn't exist
+mkdir -p _to_developer/test-results
+
+# Initialize counters
+total_tests=0
+passed_tests=0
+failed_tests=0
+
+# Function to run a single test and record results
+run_test() {
+    local test_file="$1"
+    local test_name=$(basename "$test_file" .sh)
+    local result_dir="_to_developer/test-results/${test_name}"
+    
+    # Create test result directory
+    mkdir -p "$result_dir"
+    
+    echo "Running test: ${test_name}"
+    
+    # Run the test and capture both stdout and stderr
+    if bash "$test_file" > "$result_dir/stdout" 2> "$result_dir/stderr"; then
+        echo "PASS" > "$result_dir/status"
+        ((passed_tests++))
+        echo "✓ ${test_name} passed"
+    else
+        echo "FAIL" > "$result_dir/status"
+        ((failed_tests++))
+        echo "✗ ${test_name} failed, see $result_dir"
+    fi
+    
+    ((total_tests++))
+}
+
+# Main execution
+echo "Starting test run..."
+echo "==================="
+
+# Find and run all matching test files
+for test_file in test/[0-9a-zA-Z]*.sh; do
+    if [ -f "$test_file" ]; then
+        run_test "$test_file"
+    fi
+done
+
+# Generate summary
+echo -e "\nTest Run Summary"
+echo "================"
+echo "Total tests: ${total_tests}"
+echo "Passed: ${passed_tests}"
+echo "Failed: ${failed_tests}"
+
+# Save summary to file
+summary_file="_to_developer/test-results-summary.txt"
+{
+    echo "Test Run Summary"
+    echo "================"
+    echo "Total tests: ${total_tests}"
+    echo "Passed: ${passed_tests}"
+    echo "Failed: ${failed_tests}"
+    echo
+    echo "Individual Test Results:"
+    for test_file in test/[0-9a-zA-Z]*.sh; do
+        if [ -f "$test_file" ]; then
+            test_name=$(basename "$test_file" .sh)
+            status=$(cat "_to_developer/test-results/${test_name}/status")
+            echo "${test_name}: ${status}"
+        fi
+    done
+} > "$summary_file"
+
+# Exit with failure if any tests failed
+[ "$failed_tests" -eq 0 ]
