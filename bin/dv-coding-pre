@@ -4,21 +4,46 @@ set -euo pipefail
 
 source "$(dirname "$0")/../lib/load-env.sh"
 
+# build a fresh _to_developer directory.  we'll clear _from_developer
+# after this is done.
+
 rm -rf _to_developer
+mkdir _to_developer
+
+if [ -f setup.sh ]; then
+    bash setup.sh
+fi
+
+if [ -d _references ]; then
+    cp -a _references _to_developer/references
+fi
 
 env='_from_developer/setenv'
 if [ -f "$env" ]; then
     load_env "$env"
 fi
 
-# a bit risky?
-if [ -f setup.sh ]; then
-    bash setup.sh
-fi
-
 if [ ! -d _to_developer/test-results ]; then
    dv-testing-run || echo "One or more tests failed"
 fi
+
+# Expose recent git commits, which is kind of like chat
+# conversation history.
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    RECENT_COMMITS=${RECENT_COMMITS:-0}
+    mkdir -p _to_developer/recent-commits
+    pushd _to_developer/recent-commits
+    git log -n $RECENT_COMMITS > git-log
+    git log -n $RECENT_COMMITS --pretty=format:"%H" | while read commit; do
+        # Save each commit's diff to a file named after its hash
+        git show $commit > "${commit}.diff"
+    done
+    popd
+else
+    echo WARNING: not using git, so not providing change history to AI
+fi
+
+
 
 # optional web search
 
@@ -27,3 +52,4 @@ fi
 # ...etc
 
 rm -rf _from_developer
+mkdir _from_developer

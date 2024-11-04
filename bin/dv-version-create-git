@@ -15,13 +15,13 @@ check_git_status() {
 
     # Check for untracked files
     if [ -n "$(git ls-files --others --exclude-standard)" ]; then
-        echo "Error: Untracked files present" >&2
+        echo "Error: Untracked files present.  Consider 'git status', maybe delete with 'git clean -fd'" >&2
         exit 1
     fi
 
     # Check for modified files
     if [ -n "$(git diff --name-only)" ]; then
-        echo "Error: Modified files present" >&2
+        echo "Error: Modified files present. Consider 'git status'" >&2
         exit 1
     fi
 

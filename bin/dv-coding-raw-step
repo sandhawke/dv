@@ -33,12 +33,12 @@ If everything seems done, with all features implemented, all features tested, an
 Be sure to honor the instructions in 'docs/coding-environment/response-format.md' when you reply. This is very important. For your work to be used, you must follow the mime-multipart format as stated.
 "
 
-echo "$0" >&2
-echo Running $0 in $(pwd)
-echo Current files are $(find .)
+# echo "$0" >&2
+# echo Running $0 in $(pwd)
+# echo Current files are $(find .)
 
 dv-coding-pre
-packmime instructions=$"$PROMPT" * > $infile
+packmime instructions=$"$PROMPT" . --include=_to_developer --ignore=_from_developer > $infile
 echo Sending request to LLM... >&2
 time llpipe <$infile >$outfile
 unpackmime --patch $outfile
