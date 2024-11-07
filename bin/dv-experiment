@@ -2,73 +2,74 @@
 # -*-mode: sh-mode -*-
 set -euo pipefail
 
-if [ -z "$ANTHROPIC_API_KEY" ]; then
-    echo missing ANTHROPIC_API_KEY
+if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+    echo "ERROR: missing ANTHROPIC_API_KEY" >&2
+    exit 1
 fi
 
 usage() {
-  echo "Usage: $0 config-file..."
-  echo
-  echo "Options:"
-  echo "  --help        Display this help message and exit."
-  echo
-  echo "Description:
+    cat <<EOF
+Usage: $0 [--force] config-file...
 
-Starts an experiment for each provided config-file.  Each file is
+Options:
+  --force       Force execution even if directory exists
+  --help        Display this help message and exit.
+
+Description:
+Starts an experiment for each provided config-file. Each file is
 a sh env file, providing values for one or more values used to
 configure an experimental run.
-
-Values are
-   name=
-   template=
-   spec=
-...
-
-"
-  exit 1
+Values are:
+   name=        (defaults to config filename)
+   template=    (defaults to node20)
+   spec=        (required)
+EOF
+    exit 1
 }
 
-expts=""
+FORCE_MODE=false
+expts=()
 
-while [[ "$#" -gt 0 ]]; do
+while [[ $# -gt 0 ]]; do
     case "$1" in
-    --force)
-      FORCE_MODE=true
-      shift
-      ;;
-    --help)
-      usage
-      ;;
-    --*)
-      echo "Unknown option: $1"
-      usage
-      ;;
-     *)
-        echo "Config file named $1"
-        expts="$expts $1"
-        break
-      ;;
-  esac
+        --force)
+            FORCE_MODE=true
+            shift
+            ;;
+        --help)
+            usage
+            ;;
+        --*)
+            echo "Unknown option: $1" >&2
+            usage
+            ;;
+        *)
+            expts+=("$1")
+            shift
+            ;;
+    esac
 done
 
-if [ -z "$expts" ]; then
-   usage
+if [ ${#expts[@]} -eq 0 ]; then
+    usage
 fi
 
-H=./runs
-mkdir -p $H
-for file in $expts; do
-    name=$file
-    template=node20
+H="./runs"
+mkdir -p "$H"
+
+for file in "${expts[@]}"; do
+    name="$file"
+    template="node20"
     spec="Specification not yet provided. Please stand by."
-    source ./$file  # so it's okay with filenames that match system commands
-    pushd $(mktemp --tmpdir=$H -d "run-$name-XXXXXX")
-    dv-init $template
+    
+    source "./$file"
+    
+    pushd "$(mktemp --tmpdir="$H" -d "run-${name}-XXXXXX")"
+    dv-init "$template"
+    mkdir -p docs
     echo "$spec" > docs/spec.md
     git add -A
-    git commit -m'configured for experiment'
-    ## COULD background this to run branches in parallel, if 429 handling
-    ## is good enough.
+    git commit -m 'configured for experiment'
     dv-coding-step
     pwd
     popd
