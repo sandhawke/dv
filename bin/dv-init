@@ -1,0 +1,103 @@
+#!/bin/bash
+# -*-mode: sh-mode -*-
+set -euo pipefail
+
+# Lots of design issues
+#
+# Should templates sometimes/always be a repo we're cloning?
+# -- git clone /path/to/local/repo
+#
+# How do we customize?  run and delete a TEMPLATE_INSTALL.sh
+# or LOCALIZE_TEMPLATE.sh
+#
+
+
+usage() {
+  echo "Usage: $0 <template-name>"
+  echo
+  echo "Options:"
+  echo "  --force       Enable force mode."
+  echo "  --help        Display this help message and exit."
+  echo
+  echo "Description:"
+  echo "  Initialize a directory for use by dv, using a template"
+  exit 1
+}
+
+if [ -d '.dv' ]; then
+    echo "There's already a .dv here" >&2
+    exit 1
+fi
+
+if [ -d '.git' ]; then
+    echo "There's already a .git here" >&2
+    exit 1
+fi
+
+FORCE_MODE=false
+template_name=""
+
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+    --force)
+      FORCE_MODE=true
+      shift
+      ;;
+    --help)
+      usage
+      ;;
+    --*)
+      echo "Unknown option: $1"
+      usage
+      ;;
+     *)
+        echo "Template name $1"
+        template_name="$1"
+        break
+      ;;
+  esac
+done
+
+if [ -z "$template_name" ]; then
+   usage
+fi
+
+src=$(dv-path templates/"$template_name")
+
+if [ ! -d $src ]; then
+    echo "Template name '$template_name' not found in $(dv-path templates)"
+    exit 1
+fi
+
+# consider .dv/devdocs, linked into _to_developer
+dest=.
+
+#
+#if [ "$FORCE_MODE" = false ]; then
+#    if [ -d $dest ]; then
+#        echo "$dest exists, running diff. Use --force if you want to rsync anyway."
+#        if diff --exclude='*~' -r $src $dest; then
+#            echo "diff shows no local changes."
+#        fi
+#        exit 0
+#    fi
+#fi
+
+mkdir -p "$dest"
+rsync -av --exclude='*~' "$src"/* "$dest"
+
+mkdir .dv
+
+git init
+git add --all
+git commit -m'initial template files'
+
+echo $"Setup complete.
+
+Now edit docs/spec.md or README.md
+
+Then try dv-step or dv-loop.
+"
+
+
+

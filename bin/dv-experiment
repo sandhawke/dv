@@ -1,0 +1,75 @@
+#!/bin/bash
+# -*-mode: sh-mode -*-
+set -euo pipefail
+
+if [ -z "$ANTHROPIC_API_KEY" ]; then
+    echo missing ANTHROPIC_API_KEY
+fi
+
+usage() {
+  echo "Usage: $0 config-file..."
+  echo
+  echo "Options:"
+  echo "  --help        Display this help message and exit."
+  echo
+  echo "Description:
+
+Starts an experiment for each provided config-file.  Each file is
+a sh env file, providing values for one or more values used to
+configure an experimental run.
+
+Values are
+   name=
+   template=
+   spec=
+...
+
+"
+  exit 1
+}
+
+expts=""
+
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+    --force)
+      FORCE_MODE=true
+      shift
+      ;;
+    --help)
+      usage
+      ;;
+    --*)
+      echo "Unknown option: $1"
+      usage
+      ;;
+     *)
+        echo "Config file named $1"
+        expts="$expts $1"
+        break
+      ;;
+  esac
+done
+
+if [ -z "$expts" ]; then
+   usage
+fi
+
+H=./runs
+mkdir -p $H
+for file in $expts; do
+    name=$file
+    template=node20
+    spec="Specification not yet provided. Please stand by."
+    source ./$file  # so it's okay with filenames that match system commands
+    pushd $(mktemp --tmpdir=$H -d "run-$name-XXXXXX")
+    dv-init $template
+    echo "$spec" > docs/spec.md
+    git add -A
+    git commit -m'configured for experiment'
+    ## COULD background this to run branches in parallel, if 429 handling
+    ## is good enough.
+    dv-coding-step
+    pwd
+    popd
+done
