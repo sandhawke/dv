@@ -1,17 +1,5 @@
 #!/bin/bash
 
-## FAILS on bin: { wc: .... }
-if [ -z "$PROGRAM" ]; then
-    if [ -f package.json ]; then
-        ## file=$(jq -r '.bin // .main' package.json)
-        export PROGRAM="node index.js"
-        echo "PROGRAM set to '$PROGRAM'"
-    else
-        echo "PROGRAM not set and no package.json" >&2
-        exit 1
-    fi
-fi
-   
 # Create output directory if it doesn't exist
 mkdir -p _to_developer/test-results
 
@@ -25,14 +13,18 @@ run_test() {
     local test_file="$1"
     local test_name=$(basename "$test_file" .sh)
     local result_dir="_to_developer/test-results/${test_name}"
+    local working_dir="${result_dir}/working_directory"
+    local absolute_test_path=$(readlink -f "$test_file")
     
-    # Create test result directory
+    # Create test result directory and working directory
     mkdir -p "$result_dir"
+    mkdir -p "$working_dir"
     
     echo "Running test: ${test_name}"
     
-    # Run the test and capture both stdout and stderr
-    if bash "$test_file" > "$result_dir/stdout" 2> "$result_dir/stderr"; then
+    # Run the test in working directory and capture both stdout and stderr
+    (cd "$working_dir" && bash "$absolute_test_path") > "$result_dir/stdout" 2> "$result_dir/stderr"
+    if [ $? -eq 0 ]; then
         echo "PASS" > "$result_dir/status"
         ((passed_tests++))
         echo "✓ ${test_name} passed"
