@@ -84,7 +84,7 @@ dest=.
 #fi
 
 mkdir -p "$dest"
-rsync -av --exclude='*~' "$src"/* "$dest"
+rsync -av --exclude='*~' "$src"/*1` "$dest"
 
 mkdir .dv
 

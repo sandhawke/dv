@@ -10,4 +10,6 @@ When it makes sense to do so, put your response into attachment files with sensi
 
 You may set UNIX file permissions, such as executable permission, on files you are sending as attachments, using the X-Unix-Mode header, which takes octal file permissions.
 
+To delete a file, make an attachment using that file's pathname and on the Content-Disposition header include the parameter action=delete. The body for that attachment should be: [delete this file]
+
 Unless you need a different boundary string for uniqueness, start your response to the user with: Content-Type: multipart/mixed; boundary="boundary-01"

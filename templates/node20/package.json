@@ -1,0 +1,19 @@
+{
+  "type": "module",
+  "name": "name-goes-here",
+  "version": "0.0.1",
+  "description": "description-goes-here",
+  "main": "src/index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  }
+  "author": "YOUR-NAME-HERE",
+  "license": "UNLICENSED"
+}
