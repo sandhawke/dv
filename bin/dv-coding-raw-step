@@ -24,7 +24,7 @@ If the basic implementation seems to be working, and you see it passing tests, t
 
 Do not make files larger than 16k bytes, and do not have the test scripts leave such files behind.
 
-Check for open issues in doc/open-issues, and once you've addressed them, move them to doc/closed-issues, with some explanation.
+Check for open issues in doc/issues, and once you've addressed them, update them to be closed with an explanation.
 
 For testing, you can set environment variables by putting lines like DEBUG=foo:bar in _from_developer/setenv
 
