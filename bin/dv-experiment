@@ -1,6 +1,7 @@
 #!/bin/bash
 # -*-mode: sh-mode -*-
 set -euo pipefail
+source $(dv-path lib/output.sh)
 
 if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
     echo "ERROR: missing ANTHROPIC_API_KEY" >&2
@@ -9,10 +10,9 @@ fi
 
 usage() {
     cat <<EOF
-Usage: $0 [--force] config-file...
+Usage: $0 config-file...
 
 Options:
-  --force       Force execution even if directory exists
   --help        Display this help message and exit.
 
 Description:
@@ -27,15 +27,10 @@ EOF
     exit 1
 }
 
-FORCE_MODE=false
 expts=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --force)
-            FORCE_MODE=true
-            shift
-            ;;
         --help)
             usage
             ;;
@@ -70,7 +65,9 @@ for file in "${expts[@]}"; do
     echo "$spec" > docs/spec.md
     git add -A
     git commit -m 'configured for experiment'
-    dv-coding-step
+    info "Looping in $(pwd)"
+    # maybe we want to pop terminal or file browser there?
+    dv-loop
     pwd
     popd
 done

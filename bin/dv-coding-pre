@@ -24,7 +24,7 @@ if [ -f "$env" ]; then
 fi
 
 if [ ! -d _to_developer/test-results ]; then
-   dv-testing-run || echo "One or more tests failed"
+   dv-test || echo "One or more tests failed"
 fi
 
 # Expose recent git commits, which is kind of like chat
