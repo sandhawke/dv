@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# not quite sure this is the right place for this, but I keep missing this
+# step before running tests.
+if [ -f package.json ]; then
+   npm install
+fi
+
 # Create output directory if it doesn't exist
 mkdir -p _to_developer/test-results
 
