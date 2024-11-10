@@ -11,9 +11,27 @@ In general, each new request is made by creating a file like _from_developer/too
 
 ## Available Tools
 
+### search-npmjs-com
+
+Provides search of the standard NPM public repository, to help identify good libraries to build upon. Parameters accepted by [libnpmsearch](https://www.npmjs.com/package/libnpmsearch) may be available.
+
+* `query`: the text to provide the npmjs.com search engine
+
+### npm-docs
+
+Provide access to the public documentation of an NPM package. Usually provides necessary information before using a package.
+
+* `package-name`: the name as provided by search-npmjs-com, with the @namespace prefix if appropriate, and with an @version suffix if desired
+
+### npm-source
+
+Provide access to the public source code of an NPM package. Sometimes necessary to learn how to properly use a package.
+
+* `package-name`: the name as provided by search-npmjs-com, with the @namespace prefix if appropriate, and with an @version suffix if desired
+
 ### curl
 
-Provide general access to the web
+Provide general access to the web. Useful for checking information before making assumptions.
 
 * `arguments`: array of arguments to the curl command line interface
 

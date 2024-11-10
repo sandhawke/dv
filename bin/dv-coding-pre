@@ -18,6 +18,13 @@ if [ -d _references ]; then
     cp -a _references _to_developer/references
 fi
 
+if [ -d _from_developer/tool-request ]; then
+    echo $'\n\n***TOOL REQUESTED!'
+    find _from_developer/tool-request
+    echo
+    dv-tool-runner
+fi
+
 env='_from_developer/setenv'
 if [ -f "$env" ]; then
     load_env "$env"
@@ -31,9 +38,9 @@ fi
 
 # Expose recent git commits, which is kind of like chat
 # conversation history.
-echo Including recent commits
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     RECENT_COMMITS=${RECENT_COMMITS:-0}
+    echo Including $RECENT_COMMITS recent commits
     mkdir -p _to_developer/recent-commits
     pushd _to_developer/recent-commits
     git log -n $RECENT_COMMITS > git-log
@@ -45,8 +52,6 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 else
     echo WARNING: not using git, so not providing change history to AI
 fi
-
-echo TODO: RUN TOOLS eg curl
 
 rm -rf _from_developer
 mkdir _from_developer

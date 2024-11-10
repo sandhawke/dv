@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# Exit on error
+set -e
+
+# Directory paths
+FROM_DIR="_from_developer/tool-request"
+TO_DIR="_to_developer/tool-response"
+
+# Function to check if input is valid JSON
+is_valid_json() {
+    if jq -e . >/dev/null 2>&1 <<<"$1"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Function to process a request file
+process_request() {
+    local request_file="$1"
+    local request_basename=$(basename "$request_file")
+    local response_file="${TO_DIR}/${request_basename}"
+    
+    # Read the request content
+    local content=$(<"$request_file")
+    
+    # Validate JSON input
+    if ! is_valid_json "$content"; then
+        echo "Error: Invalid JSON in $request_file" >&2
+        return 1
+    }
+    
+    # Check if this is a request for our tool
+    local tool=$(echo "$content" | jq -r '.tool')
+    if [ "$tool" != "search-npmjs-com" ]; then
+        return 0  # Not for us, skip silently
+    }
+    
+    # Extract query from input
+    local query=$(echo "$content" | jq -r '.query // empty')
+    if [ -z "$query" ]; then
+        echo "Error: Missing required 'query' parameter in $request_file" >&2
+        return 1
+    }
+    
+    # Create response directory if it doesn't exist
+    mkdir -p "$TO_DIR"
+    
+    # Prepare the URL (URL encode the query)
+    local encoded_query=$(printf '%s' "$query" | jq -sRr @uri)
+    local url="https://registry.npmjs.org/-/v1/search?text=${encoded_query}&size=25"
+    
+    # Make the request
+    local response
+    response=$(curl -s -H "Accept: application/json" "$url")
+    
+    # Validate response is valid JSON
+    if ! is_valid_json "$response"; then
+        echo "Error: Invalid JSON response from npm registry for $request_file" >&2
+        return 1
+    }
+    
+    # Write the response
+    echo "$response" > "$response_file"
+}
+
+# Process all files in the request directory
+for request_file in "$FROM_DIR"/*.json; do
+    # Check if there are any matching files (avoid "*.json" literal in error message)
+    if [ -e "$request_file" ]; then
+        process_request "$request_file"
+    fi
+done

@@ -1,0 +1,177 @@
+#!/bin/bash
+
+# Exit on error
+set -e
+
+# Directory paths
+FROM_DIR="_from_developer/tool-request"
+TO_DIR="_to_developer/tool-response"
+
+# Function to check if input is valid JSON
+is_valid_json() {
+    if jq -e . >/dev/null 2>&1 <<<"$1"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Function to create response directory
+ensure_response_dir() {
+    mkdir -p "$TO_DIR"
+}
+
+# Function to handle search-npmjs-com tool
+handle_search_npmjs() {
+    local content="$1"
+    local query=$(echo "$content" | jq -r '.query // empty')
+    
+    if [ -z "$query" ]; then
+        echo "Error: Missing required 'query' parameter" >&2
+        return 1
+    fi
+    
+    # Prepare the URL (URL encode the query)
+    local encoded_query=$(printf '%s' "$query" | jq -sRr @uri)
+    local url="https://registry.npmjs.org/-/v1/search?text=${encoded_query}&size=25"
+    
+    # Make the request
+    curl -s -H "Accept: application/json" "$url"
+}
+
+# Function to handle npm-docs tool
+handle_npm_docs() {
+    local content="$1"
+    local package_name=$(echo "$content" | jq -r '."package-name" // empty')
+    
+    if [ -z "$package_name" ]; then
+        echo "Error: Missing required 'package-name' parameter" >&2
+        return 1
+    fi
+    
+    # Encode package name for URL
+    local encoded_name=$(printf '%s' "$package_name" | jq -sRr @uri)
+    local url="https://registry.npmjs.org/${encoded_name}"
+    
+    # Get package metadata which includes documentation links
+    local metadata=$(curl -s "$url")
+    
+    # Extract and format relevant documentation information
+    echo "$metadata" | jq '{
+        name: .name,
+        description: .description,
+        homepage: .homepage,
+        repository: .repository.url,
+        readme: .readme
+    }'
+}
+
+# Function to handle npm-source tool
+handle_npm_source() {
+    local content="$1"
+    local package_name=$(echo "$content" | jq -r '."package-name" // empty')
+    
+    if [ -z "$package_name" ]; then
+        echo "Error: Missing required 'package-name' parameter" >&2
+        return 1
+    fi
+    
+    # Encode package name for URL
+    local encoded_name=$(printf '%s' "$package_name" | jq -sRr @uri)
+    local url="https://registry.npmjs.org/${encoded_name}"
+    
+    # Get package metadata
+    local metadata=$(curl -s "$url")
+    
+    # Extract latest version and tarball URL
+    local tarball_url=$(echo "$metadata" | jq -r '.versions[keys[-1]].dist.tarball')
+    
+    if [ -z "$tarball_url" ] || [ "$tarball_url" = "null" ]; then
+        echo "Error: Could not find source tarball URL" >&2
+        return 1
+    fi
+    
+    # Get the source tarball and convert to base64 for JSON storage
+    curl -s "$tarball_url" | base64
+}
+
+# Function to handle curl tool
+handle_curl() {
+    local content="$1"
+    local args=$(echo "$content" | jq -r '.arguments[]')
+    
+    if [ -z "$args" ]; then
+        echo "Error: Missing required 'arguments' parameter" >&2
+        return 1
+    fi
+    
+    # Execute curl with provided arguments
+    # Using eval here to properly handle the array of arguments
+    eval "curl -s $(printf '%q ' $args)"
+}
+
+# Function to process a single request
+process_request() {
+    local request_file="$1"
+    local request_basename=$(basename "$request_file")
+    local response_file="${TO_DIR}/${request_basename}"
+    
+    # Read the request content
+    local content=$(<"$request_file")
+    
+    # Validate JSON input
+    if ! is_valid_json "$content"; then
+        echo "Error: Invalid JSON in $request_file" >&2
+        return 1
+    fi
+    
+    # Extract tool name
+    local tool=$(echo "$content" | jq -r '.tool')
+    local response
+    
+    # Process based on tool type
+    case "$tool" in
+        "search-npmjs-com")
+            response=$(handle_search_npmjs "$content")
+            ;;
+        "npm-docs")
+            response=$(handle_npm_docs "$content")
+            ;;
+        "npm-source")
+            response=$(handle_npm_source "$content")
+            ;;
+        "curl")
+            response=$(handle_curl "$content")
+            ;;
+        *)
+            # Not for us
+            echo "WARNING: unknown tool $tool"
+            return 0
+            ;;
+    esac
+    
+    # Verify response is valid JSON
+    if ! is_valid_json "$response"; then
+        echo "Error: Invalid JSON response for $request_file" >&2
+        return 1
+    fi
+    
+    # Write the response
+    echo "$response" > "$response_file"
+}
+
+# Main execution
+main() {
+    ensure_response_dir
+    
+    # Process all files in the request directory
+    for request_file in "$FROM_DIR"/*.json; do
+        # Check if there are any matching files
+        if [ -e "$request_file" ]; then
+            process_request "$request_file"
+        fi
+    done
+}
+
+# Run the main function
+main

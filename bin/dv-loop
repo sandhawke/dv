@@ -2,6 +2,8 @@
 # -*-mode: sh-mode -*-
 set -euo pipefail
 source $(dv-path lib/output.sh)
+trap 'echo bash error lineno ${LINENO} "${BASH_COMMAND}" "$?"' ERR
+
 
 MAX_ATTEMPTS=12
 SLEEP_INTERVAL=1  # seconds between attempts
@@ -9,8 +11,14 @@ READY_PATH="_from_developer/ready-to-deploy"
 
 attempt=1
 while true; do
+    if [ $attempt -ge 6 ]; then
+        export RECENT_COMMITS=4
+        SLEEP_INTERVAL=10
+    fi
+
     info "Step #$attempt"
-    dv-step
+
+    dv-step || echo dv-step failed
     
     if [ -e "$READY_PATH" ]; then
         info "$READY_PATH found"

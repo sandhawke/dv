@@ -50,7 +50,7 @@ if [ ${#expts[@]} -eq 0 ]; then
     usage
 fi
 
-H="./runs"
+H="./_runs"
 mkdir -p "$H"
 
 for file in "${expts[@]}"; do
@@ -59,6 +59,7 @@ for file in "${expts[@]}"; do
     spec="Specification not yet provided. Please stand by."
     
     source "./$file"
+    echo starting experiment $file
     
     pushd "$(mktemp --tmpdir="$H" -d "run-${name}-XXXXXX")"
     dv-init "$template"
@@ -68,7 +69,8 @@ for file in "${expts[@]}"; do
     git commit -m 'configured for experiment'
     info "Looping in $(pwd)"
     # maybe we want to pop terminal or file browser there?
-    dv-loop || echo "dv-loop error exit"
+    dv-loop || echo "dv-loop exited with an error"
     pwd
     popd
 done
+echo done with all experiments

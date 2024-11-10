@@ -1,0 +1,62 @@
+#!/bin/bash
+# -*-mode: sh-mode -*-
+set -euo pipefail
+source $(dv-path lib/output.sh)
+trap 'echo bash error line ${LINENO} "${BASH_COMMAND}" returned "$?"' ERR
+
+if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+    echo "ERROR: missing ANTHROPIC_API_KEY" >&2
+    exit 1
+fi
+
+template="node20"
+
+usage() {
+    cat <<EOF
+Usage: $0 [options brief-specification-string
+
+Options:
+  --help        Display this help message and exit.
+  --template=   Specify template for dv-init, default $template
+
+EOF
+    exit 1
+}
+
+words=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)
+            usage
+            ;;
+        --*)
+            echo "Unknown option: $1" >&2
+            usage
+            ;;
+        *)
+            words+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [ ${#words[@]} -eq 0 ]; then
+    usage
+fi
+
+H="./_runs"
+mkdir -p "$H"
+
+pushd "$(mktemp --tmpdir="$H" -d "run-XXXXXX")"
+dv-init "$template"
+mkdir -p docs
+echo "$words" > docs/spec.md
+git add -A
+git commit -m 'configured for dv-create'
+info "Looping in $(pwd)"
+(xfce4-terminal || echo "no terminal") &
+dv-loop || echo "dv-loop exited with an error"
+pwd
+
+echo done
