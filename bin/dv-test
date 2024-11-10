@@ -15,7 +15,9 @@ done
 # not quite sure this is the right place for this, but I keep missing this
 # step before running tests.
 if [ -f package.json ]; then
-   npm install
+    npm install
+    # that might change some files and make git dirty  :-(
+    # for now .gitignore package-lock.json
 fi
 
 # Create output directory if it doesn't exist
@@ -106,5 +108,6 @@ if [ $KEEP_RESULTS -eq 0 ]; then
     done
 fi
 
+echo "dv-test exiting with $failed_tests failed tests"
 # Exit with failure if any tests failed
 exit "$failed_tests"
