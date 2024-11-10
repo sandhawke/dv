@@ -2,6 +2,7 @@
 # -*-mode: sh-mode -*-
 set -euo pipefail
 source $(dv-path lib/output.sh)
+trap 'echo bash error line ${LINENO} "${BASH_COMMAND}" returned "$?"' ERR
 
 if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
     echo "ERROR: missing ANTHROPIC_API_KEY" >&2
@@ -67,7 +68,7 @@ for file in "${expts[@]}"; do
     git commit -m 'configured for experiment'
     info "Looping in $(pwd)"
     # maybe we want to pop terminal or file browser there?
-    dv-loop
+    dv-loop || echo "dv-loop error exit"
     pwd
     popd
 done

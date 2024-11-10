@@ -38,7 +38,7 @@ Be sure to honor the instructions in 'docs/coding-environment/response-format.md
 # echo Current files are $(find .)
 
 dv-coding-pre
-packmime instructions=$"$PROMPT" . --include=_to_developer --ignore=_from_developer > $infile
+packmime instructions=$"$PROMPT" . --include=_to_developer --ignore=_from_developer --ignore=package-lock.json > $infile
 echo Sending request to LLM... >&2
 time llpipe <$infile >$outfile
 unpackmime --patch $outfile

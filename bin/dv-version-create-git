@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+trap 'echo bash error ${LINENO} "${BASH_COMMAND}" "$?"' ERR
 
 # Source common functions
 source "$(dirname "$0")/../lib/dv-version-functions.sh"
@@ -64,7 +65,7 @@ create_git_version() {
         commit_message="[AI] $(cat _from_developer/commit-message)"
         log "Using commit message from .commit_message"
     else
-        commit_message="[dv exec] $EXEC_CMD"
+        commit_message="AI generated no commit message"
         log "Using default commit message"
     fi
 

@@ -1,4 +1,16 @@
 #!/bin/bash
+trap 'echo bash failure line ${LINENO} "${BASH_COMMAND}" "$?"' ERR
+
+# Parse command line arguments
+KEEP_RESULTS=0
+for arg in "$@"; do
+    case $arg in
+        --keep)
+            KEEP_RESULTS=1
+            shift # Remove --keep from processing
+            ;;
+    esac
+done
 
 # not quite sure this is the right place for this, but I keep missing this
 # step before running tests.
@@ -8,11 +20,15 @@ fi
 
 # Create output directory if it doesn't exist
 mkdir -p _to_developer/test-results
+export PROJECT_ROOT=$PWD
 
 # Initialize counters
 total_tests=0
 passed_tests=0
 failed_tests=0
+
+# Array to store passed test directories for cleanup
+declare -a passed_test_dirs
 
 # Function to run a single test and record results
 run_test() {
@@ -34,6 +50,7 @@ run_test() {
         echo "PASS" > "$result_dir/status"
         ((passed_tests++))
         echo "✓ ${test_name} passed"
+        passed_test_dirs+=("$result_dir")
     else
         echo "FAIL" > "$result_dir/status"
         ((failed_tests++))
@@ -80,5 +97,14 @@ summary_file="_to_developer/test-results-summary.txt"
     done
 } > "$summary_file"
 
+# Clean up passed test directories unless --keep flag is provided
+if [ $KEEP_RESULTS -eq 0 ]; then
+    echo -e "\nCleaning up passed test directories..."
+    for dir in "${passed_test_dirs[@]}"; do
+        echo "Removing $dir"
+        rm -rf "$dir"
+    done
+fi
+
 # Exit with failure if any tests failed
-[ "$failed_tests" -eq 0 ]
+exit "$failed_tests"

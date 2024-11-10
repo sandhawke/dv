@@ -1,0 +1,36 @@
+#!/bin/bash
+# -*-mode: sh-mode -*-
+set -euo pipefail
+source $(dv-path lib/output.sh)
+
+MAX_ATTEMPTS=12
+SLEEP_INTERVAL=1  # seconds between attempts
+READY_PATH="_from_developer/ready-to-deploy"
+
+attempt=1
+while true; do
+    info "Step #$attempt"
+    dv-step
+    
+    if [ -e "$READY_PATH" ]; then
+        info "$READY_PATH found"
+        if dv-test; then
+            success "Software appears ready to deploy"
+            exit 0
+        else
+            info but not all tests pass
+        fi
+    fi
+    
+    if [ $attempt -ge $MAX_ATTEMPTS ]; then
+        break
+    fi
+    
+    info "Waiting $SLEEP_INTERVAL seconds before next attempt..."
+    sleep $SLEEP_INTERVAL
+    
+    ((attempt++))
+done
+
+error "Max attempts ($MAX_ATTEMPTS) reached without finding $READY_PATH"
+exit 1
