@@ -1,7 +1,5 @@
 #!/bin/bash
-
-# Exit on error
-set -e
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 # Directory paths
 FROM_DIR="_from_developer/tool-request"
@@ -157,7 +155,22 @@ process_request() {
     fi
     
     # Write the response
-    echo "$response" > "$response_file"
+    echo "# Request
+
+$content
+
+# Response
+
+$response
+
+# Instructions
+
+Summarize this response in a persistant location like docs/external or
+docs/issues, because this file is temporary. If you do not summarize
+this information for the future, it will likely need to be fetched
+again.
+
+" > "$response_file"
 }
 
 # Main execution

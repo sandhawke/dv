@@ -1,6 +1,5 @@
 #!/bin/bash
-# -*-mode: sh-mode -*-
-set -euo pipefail
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 if [ -f explanation ]; then
     echo "$(tput setaf 2)"
@@ -10,4 +9,3 @@ if [ -f explanation ]; then
     echo "$(tput sgr0)"
     rm explanation
 fi
-

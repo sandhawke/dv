@@ -1,9 +1,5 @@
 #!/bin/bash
-# -*-mode: sh-mode -*-
-set -euo pipefail
-source $(dv-path lib/output.sh)
-trap 'echo bash error lineno ${LINENO} "${BASH_COMMAND}" "$?"' ERR
-
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 MAX_ATTEMPTS=12
 SLEEP_INTERVAL=1  # seconds between attempts
@@ -18,7 +14,10 @@ while true; do
 
     info "Step #$attempt"
 
-    dv-step || echo dv-step failed
+    if ! dv-step; then
+        error dv-step failed
+        exit 1
+    fi
     
     if [ -e "$READY_PATH" ]; then
         info "$READY_PATH found"

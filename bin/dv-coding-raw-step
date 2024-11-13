@@ -1,6 +1,5 @@
 #!/bin/bash
-#  --mode: sh-mode --
-set -euo pipefail
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 # until we have a version of llpipe that stashes this reliably, then
 # we could just have this be a pipe
@@ -10,7 +9,8 @@ outfile=$(mktemp --tmpdir dv-general-step-out-XXXXXX.mime)
 
 trap "echo [$0] SKIPPING CLEANUP: rm $infile $outfile" EXIT
 
-echo "[$0] Using $infile $outfile" >&2
+info "==========================================================="
+info "Using $infile $outfile"
 
 export PROMPT="
 You are an expert software developer tasked with enhancing the software with precision and intent. To fulfill this, follow these steps:
@@ -37,12 +37,33 @@ Be sure to honor the instructions in 'docs/coding-environment/response-format.md
 # echo Running $0 in $(pwd)
 # echo Current files are $(find .)
 
+mkdir -p .dv/to-and-from
+
 dv-coding-pre
 echo running packmime
-packmime instructions=$"$PROMPT" . --include=_to_developer --ignore=_from_developer --ignore=package-lock.json > $infile
-echo Sending request to LLM... >&2
+packmime instructions=$"$PROMPT" . --ignore=.dv --include=_to_developer --ignore=_from_developer --ignore=package-lock.json > $infile
+t=$(dv-timestamp)
+cp -a _to_developer .dv/to-and-from/$t-to
+cp -a $infile .dv/to-and-from/$t-to
+
+info Sending request to LLM...
+export LLPIPE_LOG_RESPONSE=.dv/to-and-from/$t-to/response-headers.txt
 time llpipe <$infile >$outfile
-unpackmime --patch $outfile
+
+unpack=$(unpackmime --patch $outfile)
+echo $unpack
+
+from=.dv/to-and-from/$(dv-timestamp)-from
+info saving _from_developer to $from
+mkdir -p "$from"
+echo "$unpack" > "$from"/unpack.txt
+cp -a _from_developer "$from"
+cp -a $outfile "$from"
+if [ -f explanation ]; then
+    cp -a explanation "$from"
+fi
+
 dv-coding-post
 
-echo "[$0] Using $infile $outfile" >&2
+
+info "Using $infile $outfile"

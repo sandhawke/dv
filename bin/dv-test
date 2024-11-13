@@ -22,7 +22,9 @@ fi
 
 # Create output directory if it doesn't exist
 mkdir -p _to_developer/test-results
+# I don't know which term to use. I settled on one then mis-remembered. :-(
 export PROJECT_ROOT=$PWD
+export PACKAGE_ROOT=$PWD
 
 # Initialize counters
 total_tests=0
@@ -43,6 +45,7 @@ run_test() {
     # Create test result directory and working directory
     mkdir -p "$result_dir"
     mkdir -p "$working_dir"
+    export WORKING_DIR="$working_dir"
     
     echo "Running test: ${test_name}"
     

@@ -11,11 +11,12 @@ directory for comparison, renaming them as option1, option2, then
 asks the AI to compare them.
 
 Options:
-    --prompt='string'   Specify custom prompt for comparison
-                        (default: asks for detailed comparison)
-    --tag='string'     Specify prefix for renamed files (default: 'option')
-    --git              Enable git history comparison mode
-    -h, --help         Show this help message
+    --prompt='string'    Specify custom prompt for comparison
+                         (default: asks for detailed comparison)
+    --tag='string'       Specify prefix for renamed files (default: 'option')
+    --git                Enable git history comparison mode
+    --include-ref-name   Include git reference names in output filenames
+    -h, --help           Show this help message
 
 Git references (REF) can be:
     - Branch names (e.g., main, develop)
@@ -29,7 +30,7 @@ Examples:
     
     # Git history comparison
     dv-compare --git src/config.yml HEAD main feature-branch
-    dv-compare --git app.js abc123f develop HEAD~2
+    dv-compare --git --include-ref-name app.js abc123f develop HEAD~2
     dv-compare --git --prompt='Compare versions' config.yml main HEAD
 
 Creates a temporary directory and copies all files/versions there with
@@ -43,6 +44,7 @@ prompt="Please compare these items in detail. Give me a full report of how they 
 tag="option"
 files=()
 git_mode=false
+include_ref_name=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -57,6 +59,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --git)
             git_mode=true
+            shift
+            ;;
+        --include-ref-name)
+            include_ref_name=true
             shift
             ;;
         -h|--help)
@@ -147,10 +153,14 @@ if [ "$git_mode" = true ]; then
         output_file="$tempdir/$tag$counter"
         get_git_version "$target_path" "$ref" "$output_file"
         
-        # Add ref info to the filename
-        ref_name=$(get_ref_name "$ref")
-        mv "$output_file" "$output_file-$ref_name"
-        echo "Extracted $target_path from $ref_name to $output_file-$ref_name"
+        if [ "$include_ref_name" = true ]; then
+            # Add ref info to the filename if requested
+            ref_name=$(get_ref_name "$ref")
+            mv "$output_file" "$output_file-$ref_name"
+            echo "Extracted $target_path from $ref_name to $output_file-$ref_name"
+        else
+            echo "Extracted $target_path from $(get_ref_name "$ref") to $output_file"
+        fi
         
         counter=$((counter + 1))
     done
@@ -171,9 +181,20 @@ else
 fi
 
 # Save prompt if provided
-if [ -n "$prompt" ]; then
-    echo "$prompt" > "$tempdir/prompt.txt"
-    echo "Saved prompt to $tempdir/prompt.txt"
+if false; then
+    if [ -n "$prompt" ]; then
+        echo "$prompt" > "$tempdir/prompt.txt"
+        echo "Saved prompt to $tempdir/prompt.txt"
+    fi
 fi
 
 echo "Done. Files are in $tempdir"
+
+output=$(mktemp)
+info Awaiting LLM response
+(cd $tempdir; packmime --ignore=.output prompt="$prompt" . | llpipe | tee $output)
+echo # llpipe often has no nl
+
+info Files saved in $tempdir
+info Output saved in $output
+

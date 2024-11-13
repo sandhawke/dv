@@ -8,3 +8,10 @@ if [ ! -d 'docs/coding-environment' -o ! -f 'README.md' ]; then
 fi
 
 dv-version-create --exec=dv-coding-raw-step latest
+
+echo 'consider:
+ git show --stat          # summary of what changed
+ git show                 # full diff
+ git reset --soft HEAD~1  # uncommit, so you can revise a bit
+ git reset --hard HEAD~1  # complete undo that step
+'

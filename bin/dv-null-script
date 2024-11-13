@@ -1,4 +1,3 @@
 #!/bin/bash
-# -*-mode: sh-mode -*-
-set -euo pipefail
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
