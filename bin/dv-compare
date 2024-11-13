@@ -1,0 +1,55 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+# Please write a terse and simple bash script, without much error handling, called dv-compare which takes 2+ pathnames as arguments, plus --prompt='string', and makes a new temp dir, copies (-a) each pathname, but in the temp dir they're called option1, option2, etc.
+
+#!/bin/bash
+
+prompt="Please compare these items in detail. Give me a full report of how they differ, include your expert judgement in ways each is superior, and if one is overall superior, say so.
+"
+tag="item"
+files=()
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --prompt=*)
+            prompt="${1#*=}"
+            shift
+            ;;
+        --tag=*)
+            tag="${1#*=}"
+            shift
+            ;;
+        *)
+            files+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# Check if we have at least 2 files
+if [ ${#files[@]} -lt 2 ]; then
+    echo "Error: Need at least 2 files to compare" >&2
+    exit 1
+fi
+
+# Create temp directory
+tempdir=$(mktemp -d)
+echo "Created temporary directory: $tempdir"
+
+# Copy files with new names
+counter=1
+for file in "${files[@]}"; do
+    cp -a "$file" "$tempdir/option$counter"
+    echo "Copied $file to $tempdir/$tag$counter"
+    counter=$((counter + 1))
+done
+
+# Save prompt if provided
+if [ -n "$prompt" ]; then
+    echo "$prompt" > "$tempdir/prompt.txt"
+    echo "Saved prompt to $tempdir/prompt.txt"
+fi
+
+echo "Done. Files are in $tempdir"
