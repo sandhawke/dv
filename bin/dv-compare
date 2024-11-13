@@ -1,13 +1,35 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
-# Please write a terse and simple bash script, without much error handling, called dv-compare which takes 2+ pathnames as arguments, plus --prompt='string', and makes a new temp dir, copies (-a) each pathname, but in the temp dir they're called option1, option2, etc.
+usage() {
+    cat <<EOF
+Usage: dv-compare [OPTIONS] PATH1 PATH2 [PATH3...]
 
-#!/bin/bash
+Copies multiple files or directories (recursively) to a temporary
+directory for comparison, renaming them as option1, option2, then
+asks the AI to compare them.
 
-prompt="Please compare these items in detail. Give me a full report of how they differ, include your expert judgement in ways each is superior, and if one is overall superior, say so.
-"
-tag="item"
+Options:
+    --prompt='string'   Specify custom prompt for comparison
+                        (default: asks for detailed comparison)
+    --tag='string'      Specify prefix for renamed files (default: 'option')
+    -h, --help          Show this help message
+
+Examples:
+    dv-compare file1.txt file2.txt
+    dv-compare --prompt='Compare these configs' config1.yml config2.yml config3.yml
+    dv-compare --tag='version' old.txt new.txt
+    dv-compare --prompt='Are these translations accurate?' en fr 
+
+Creates a temporary directory and copies all files there with
+sequential numbers.  The prompt (if specified) is saved as prompt.txt
+in the temporary directory.
+EOF
+    exit 1
+}
+
+prompt="Please compare these items in detail. Give me a full report of how they differ, include your expert judgement in ways each is superior, and if one is overall superior, say so."
+tag="option"
 files=()
 
 # Parse arguments
@@ -21,6 +43,9 @@ while [[ $# -gt 0 ]]; do
             tag="${1#*=}"
             shift
             ;;
+        -h|--help)
+            usage
+            ;;
         *)
             files+=("$1")
             shift
@@ -31,7 +56,7 @@ done
 # Check if we have at least 2 files
 if [ ${#files[@]} -lt 2 ]; then
     echo "Error: Need at least 2 files to compare" >&2
-    exit 1
+    usage
 fi
 
 # Create temp directory
@@ -41,7 +66,7 @@ echo "Created temporary directory: $tempdir"
 # Copy files with new names
 counter=1
 for file in "${files[@]}"; do
-    cp -a "$file" "$tempdir/option$counter"
+    cp -a "$file" "$tempdir/$tag$counter"
     echo "Copied $file to $tempdir/$tag$counter"
     counter=$((counter + 1))
 done
