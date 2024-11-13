@@ -4,6 +4,7 @@ source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 usage() {
     cat <<EOF
 Usage: dv-compare [OPTIONS] PATH1 PATH2 [PATH3...]
+   or: dv-compare [OPTIONS] --git PATH REF1 [REF2...]
 
 Copies multiple files or directories (recursively) to a temporary
 directory for comparison, renaming them as option1, option2, then
@@ -12,17 +13,27 @@ asks the AI to compare them.
 Options:
     --prompt='string'   Specify custom prompt for comparison
                         (default: asks for detailed comparison)
-    --tag='string'      Specify prefix for renamed files (default: 'option')
-    -h, --help          Show this help message
+    --tag='string'     Specify prefix for renamed files (default: 'option')
+    --git              Enable git history comparison mode
+    -h, --help         Show this help message
+
+Git references (REF) can be:
+    - Branch names (e.g., main, develop)
+    - Commit hashes (full or short)
+    - Special refs (HEAD, HEAD~1, etc.)
 
 Examples:
+    # Regular file comparison
     dv-compare file1.txt file2.txt
     dv-compare --prompt='Compare these configs' config1.yml config2.yml config3.yml
-    dv-compare --tag='version' old.txt new.txt
-    dv-compare --prompt='Are these translations accurate?' en fr 
+    
+    # Git history comparison
+    dv-compare --git src/config.yml HEAD main feature-branch
+    dv-compare --git app.js abc123f develop HEAD~2
+    dv-compare --git --prompt='Compare versions' config.yml main HEAD
 
-Creates a temporary directory and copies all files there with
-sequential numbers.  The prompt (if specified) is saved as prompt.txt
+Creates a temporary directory and copies all files/versions there with
+sequential numbers. The prompt (if specified) is saved as prompt.txt
 in the temporary directory.
 EOF
     exit 1
@@ -31,6 +42,7 @@ EOF
 prompt="Please compare these items in detail. Give me a full report of how they differ, include your expert judgement in ways each is superior, and if one is overall superior, say so."
 tag="option"
 files=()
+git_mode=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -43,6 +55,10 @@ while [[ $# -gt 0 ]]; do
             tag="${1#*=}"
             shift
             ;;
+        --git)
+            git_mode=true
+            shift
+            ;;
         -h|--help)
             usage
             ;;
@@ -53,23 +69,106 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Check if we have at least 2 files
-if [ ${#files[@]} -lt 2 ]; then
-    echo "Error: Need at least 2 files to compare" >&2
-    usage
-fi
+# Check if we're in a git repository when using git mode
+check_git_repo() {
+    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        echo "Error: Not a git repository" >&2
+        exit 1
+    fi
+}
+
+# Get a human-readable name for a git reference
+get_ref_name() {
+    local ref=$1
+    local name
+
+    # Try to get branch name first
+    name=$(git rev-parse --abbrev-ref "$ref" 2>/dev/null)
+    
+    # If it's HEAD or rev-parse failed, try different approaches
+    if [ "$name" = "HEAD" ] || [ -z "$name" ]; then
+        # Check if it's a tag
+        name=$(git describe --exact-match "$ref" 2>/dev/null)
+        
+        if [ -z "$name" ]; then
+            # If not a tag, use short commit hash
+            name=$(git rev-parse --short "$ref")
+        fi
+    fi
+    
+    echo "$name"
+}
+
+# Validate git reference
+validate_git_ref() {
+    local ref=$1
+    if ! git rev-parse --verify "$ref^{commit}" >/dev/null 2>&1; then
+        echo "Error: Invalid git reference: $ref" >&2
+        exit 1
+    fi
+}
+
+# Extract file from git history
+get_git_version() {
+    local path=$1
+    local ref=$2
+    local output=$3
+    
+    if ! git show "$ref:$path" > "$output" 2>/dev/null; then
+        echo "Error: Could not extract $path from $ref" >&2
+        exit 1
+    fi
+}
 
 # Create temp directory
 tempdir=$(mktemp -d)
 echo "Created temporary directory: $tempdir"
 
-# Copy files with new names
-counter=1
-for file in "${files[@]}"; do
-    cp -a "$file" "$tempdir/$tag$counter"
-    echo "Copied $file to $tempdir/$tag$counter"
-    counter=$((counter + 1))
-done
+if [ "$git_mode" = true ]; then
+    check_git_repo
+    
+    # In git mode, first argument is the path, rest are refs
+    if [ ${#files[@]} -lt 2 ]; then
+        echo "Error: Need path and at least one git reference for comparison" >&2
+        usage
+    fi
+    
+    target_path="${files[0]}"
+    refs=("${files[@]:1}")
+    
+    # Validate all refs
+    for ref in "${refs[@]}"; do
+        validate_git_ref "$ref"
+    done
+    
+    # Extract each version
+    counter=1
+    for ref in "${refs[@]}"; do
+        output_file="$tempdir/$tag$counter"
+        get_git_version "$target_path" "$ref" "$output_file"
+        
+        # Add ref info to the filename
+        ref_name=$(get_ref_name "$ref")
+        mv "$output_file" "$output_file-$ref_name"
+        echo "Extracted $target_path from $ref_name to $output_file-$ref_name"
+        
+        counter=$((counter + 1))
+    done
+else
+    # Original file comparison logic
+    if [ ${#files[@]} -lt 2 ]; then
+        echo "Error: Need at least 2 files to compare" >&2
+        usage
+    fi
+    
+    # Copy files with new names
+    counter=1
+    for file in "${files[@]}"; do
+        cp -a "$file" "$tempdir/$tag$counter"
+        echo "Copied $file to $tempdir/$tag$counter"
+        counter=$((counter + 1))
+    done
+fi
 
 # Save prompt if provided
 if [ -n "$prompt" ]; then
