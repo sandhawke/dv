@@ -1,0 +1,57 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+seq=basic
+seq_folder=$(dv-path sequences/basic)
+steps_file="$seq_folder/steps.txt"
+
+if [ ! -f "$steps_file" ]; then
+    error "Missing $steps_file"
+    exit 1
+fi
+
+function run_step () {
+    local n="$1"
+    local prompt="$2"
+    local filename="$3"
+    # arguments "$n" "$prompt"
+    local dir=".dv/dv-next/$seq/step-$n"
+    if [ -d "$dir" ]; then
+        if [ -f "$dir/done" ]; then
+            echo "Step $n ($filename) done, results in '$dir'"
+            return
+        else
+            echo "Already started but did not finish, clean up '$dir'"
+            exit 1
+        fi
+    fi
+    mkdir -p "$dir"
+    date > "$dir/starting"
+    echo -n "$prompt" > "$dir/prompt"
+        
+    dv-patch --prompt="$prompt" .
+    date > "$dir/done"
+    exit 0 # we do not loop!  Run this again for the next one.
+}
+
+n=1
+while IFS= read -r filename || [ -n "$filename" ]; do
+    # Skip empty lines
+    [ -z "$filename" ] && continue
+    
+    # Trim whitespace
+    filename=$(echo "$filename" | xargs)
+
+    path="$seq_folder/$filename"
+    
+    # Check if file exists
+    if [ -e "$path" ]; then
+        # printf 'Step %-3d  %s\n' $n "$filename"
+        run_step $n "$(< "$path")" "$filename"
+    else
+        printf 'Missing step %d file: %q\n' $n "$path"
+        break
+    fi
+    ((n++))
+done < "$steps_file"
+
