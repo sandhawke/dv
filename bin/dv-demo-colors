@@ -1,0 +1,15 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+# Demonstrate both new and old logging functions
+echo "Testing new logging functions:"
+log_error "This is an error message"
+log_warning "This is a warning message"
+log_info "This is an info message"
+log_success "This is a success message"
+
+echo -e "\nTesting legacy functions (will show deprecation warnings):"
+error "This is an error message"
+warning "This is a warning message"
+info "This is an info message"
+success "This is a success message"
