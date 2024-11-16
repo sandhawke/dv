@@ -10,46 +10,72 @@ if [ ! -f "$steps_file" ]; then
     exit 1
 fi
 
+function exec_if_exists () {
+    local filename="$1"
+    if [ -f "$filename" ]; then
+        echo "Running $filename"
+        if "$filename"; then
+            echo "$filename: PASSED"
+        else
+            echo "$filename: FAILED"
+            exit 1
+        fi
+    fi
+}
+
 function run_step () {
     local n="$1"
-    local prompt="$2"
-    local filename="$3"
-    # arguments "$n" "$prompt"
+    local stepname="$2"
+    local indir="$3"
+
+    if [ -f "$indir/title.txt" ]; then
+        stepname=$(<"$indir/title.txt")
+    fi
+    
     local dir=".dv/dv-next/$seq/step-$n"
     if [ -d "$dir" ]; then
         if [ -f "$dir/done" ]; then
-            echo "Step $n ($filename) done, results in '$dir'"
+            echo "Step $n ($stepname) done, results in '$dir'"
+            exec_if_exists "$indir/check-after"
             return
         else
             echo "Already started but did not finish, clean up '$dir'"
             exit 1
         fi
     fi
+
+    prompt=$(<"$indir/prompt.md")
+
+    exec_if_exists "$indir/check-before"
+    
     mkdir -p "$dir"
     date > "$dir/starting"
     echo -n "$prompt" > "$dir/prompt"
         
     dv-patch --prompt="$prompt" .
+
+    exec_if_exists "$indir/check-after"
+    
     date > "$dir/done"
     exit 0 # we do not loop!  Run this again for the next one.
 }
 
 n=1
-while IFS= read -r filename || [ -n "$filename" ]; do
+while IFS= read -r stepname || [ -n "$stepname" ]; do
     # Skip empty lines
-    [ -z "$filename" ] && continue
+    [ -z "$stepname" ] && continue
     
     # Trim whitespace
-    filename=$(echo "$filename" | xargs)
+    stepname=$(echo "$stepname" | xargs)
 
-    path="$seq_folder/$filename"
+    path="$seq_folder/$stepname"
     
     # Check if file exists
     if [ -e "$path" ]; then
-        # printf 'Step %-3d  %s\n' $n "$filename"
-        run_step $n "$(< "$path")" "$filename"
+        # printf 'Step %-3d  %s\n' $n "$stepname"
+        run_step $n "$stepname" "$path"
     else
-        printf 'Missing step %d file: %q\n' $n "$path"
+        printf 'Missing step %d directory: %q\n' $n "$path"
         break
     fi
     ((n++))

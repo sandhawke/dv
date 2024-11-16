@@ -66,8 +66,8 @@ if [ -n "$prompt" ] && [[ ! "$prompt" =~ " " ]] && [[ ! "$prompt" =~ "/" ]]; the
 fi
 
 # Print gathered values
-echo "Prompt: $prompt"
-arguments "${paths[@]}"
+#echo "Prompt: $prompt"
+#arguments "${paths[@]}"
 
 # until we have a version of llpipe that stashes this reliably, then
 # we could just have this be a pipe
@@ -77,7 +77,6 @@ outfile=$(mktemp --tmpdir dv-from-ai-XXXXXX.mime)
 response_prompt=$(< $(dv-path prompts/response-format.md))
 
 mkdir -p .dv/to-and-from
-
 
 # maybe not for us here --- dv-coding-pre
 mkdir -p _to_developer # too hard to optionally include it

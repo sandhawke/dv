@@ -2,7 +2,7 @@
 #  --mode: sh-mode --
 set -euo pipefail
 
-dv-version-create --exec=dv-patch latest
+dv-version-create --exec=${1:=dv-patch} latest
 
 echo 'consider:
  git show --stat          # summary of what changed
