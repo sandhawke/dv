@@ -11,7 +11,7 @@ If you want the AI to give back files or edits, use dv-prompt or dv-commit.
 
 Options:
   --help           Show this help message and exit
-  --prompt=PROMPT  Use PROMPT string or saved prompt by name
+  -p|--prompt=PROMPT  Use PROMPT string or saved prompt by name
 
 Saved prompts found in $(dv-path prompts)
 EOF

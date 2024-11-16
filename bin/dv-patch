@@ -11,7 +11,7 @@ that are checked in and clean.
 
 Options:
   --help           Show this help message and exit
-  --prompt=PROMPT  Use PROMPT string or saved prompt by name
+  -p|--prompt=PROMPT  Use PROMPT string or saved prompt by name
 
 Saved prompts found in $(dv-path prompts)
 EOF
@@ -30,7 +30,11 @@ while [[ $# -gt 0 ]]; do
             prompt=$(cut <<<"$1" -c 10-)
             shift
             ;;
-        --prompt)
+        -p*)
+            prompt=$(cut <<<"$1" -c 3-)
+            shift
+            ;;
+        --prompt|-p)
             if [ -z "$2" ]; then
                 echo "Error: --prompt requires an argument" >&2
                 exit 1
@@ -65,26 +69,30 @@ fi
 echo "Prompt: $prompt"
 arguments "${paths[@]}"
 
-exit 
 # until we have a version of llpipe that stashes this reliably, then
 # we could just have this be a pipe
 
-infile=$( mktemp --tmpdir dv-general-step-in-XXXXXX.mime)
-outfile=$(mktemp --tmpdir dv-general-step-out-XXXXXX.mime)
-response_prompt=$(< $(dv-path/prompts/response-prompt.md))
+infile=$( mktemp --tmpdir dv-to-ai-XXXXXX.mime)
+outfile=$(mktemp --tmpdir dv-from-ai-XXXXXX.mime)
+response_prompt=$(< $(dv-path prompts/response-format.md))
 
 mkdir -p .dv/to-and-from
 
-dv-coding-pre
+
+# maybe not for us here --- dv-coding-pre
+mkdir -p _to_developer # too hard to optionally include it
+mkdir -p _from_developer 
+
 echo running packmime
-packmime user-prompt=$"$prompt" "${paths[@]}" --ignore=.dv --include=_to_developer --ignore=_from_developer --ignore=package-lock.json response-format-instructions=$"$response_prompt" > $infile
+packmime user-prompt=$"$prompt" "${paths[@]}" --ignore="*~" --ignore=.dv --include=_to_developer --ignore=_from_developer --ignore=package-lock.json response-format-instructions=$"$response_prompt" > $infile
 t=$(dv-timestamp)
 cp -a _to_developer .dv/to-and-from/$t-to
 cp -a $infile .dv/to-and-from/$t-to
 
 info Sending $infile to LLM...
+info And reading response into $outfile
 export LLPIPE_LOG_RESPONSE=.dv/to-and-from/$t-to/response-headers.txt
-time llpipe <$infile >$outfile
+llpipe <$infile >$outfile
 
 unpack=$(unpackmime --patch $outfile)
 echo $unpack
@@ -99,6 +107,7 @@ if [ -f explanation ]; then
     cp -a explanation "$from"
 fi
 
+# since this is really just about 'explanation' currently
 dv-coding-post
 
 info "Using $infile $outfile"
