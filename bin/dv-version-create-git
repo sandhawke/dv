@@ -63,7 +63,7 @@ create_git_version() {
     local commit_message
     if [ -f "_from_developer/commit-message" ]; then
         commit_message="[AI] $(cat _from_developer/commit-message)"
-        log "Using commit message from .commit_message"
+        log "Using commit message from _from_developer/commit_message"
     else
         commit_message="AI generated no commit message"
         log "Using default commit message"

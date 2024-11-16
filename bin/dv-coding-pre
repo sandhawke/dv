@@ -56,5 +56,8 @@ else
     echo WARNING: not using git, so not providing change history to AI
 fi
 
+# delete any empty directories, even though they don't normally get sent
+find . -type d -empty -delete
+
 rm -rf _from_developer
 mkdir _from_developer
