@@ -57,7 +57,7 @@ list_settings() {
 
 Tools can make up their own settings. Hard-coded suggestions:
 
-dv-settings git-auto-commit=true
+dv-settings auto-commit=true
 
 "
         exit 0

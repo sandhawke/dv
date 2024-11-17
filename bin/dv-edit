@@ -17,8 +17,8 @@ Options:
   [any unpackmime option, like --force]
   [any packmime option, like --ignore]
 
-If dv-setting git-auto-commit=true, will git add and commit the edits,
-so to see changes use `git show` and undo with `git  reset --hard HEAD~1`.
+If dv-setting auto-commit=true, will git add and commit the edits, so
+to see changes use `git show` and undo with `git reset --hard HEAD~1`.
 
 EOF
     exit 1
@@ -170,11 +170,24 @@ cat "$log/unpack-stdout.txt"
 # the name of this, since it might have semantics to some AIs. Like
 # $DIR_FROM_AI and $DIR_TO_AI but with possible quoting issues.
 
+if [ ! -f "$commit_message_file" ]; then
+    echo "AI generation failed to produce commit message" > $commit_message_file
+fi
+
+echo "
+
+## Prompt Used
+
+Here is the text used as a primary user prompt to generate this
+commit.
+
+---start-of-prompt-used---
+$prompt
+---end-of-prompt-used---
+" >> $commit_message_file
+    
 if [ -d _from_developer ]; then
-    from="$log/_from_developer"
-    log_info saving _from_developer to $from
-    mkdir -p "$from"
-    cp -a _from_developer "$from"
+    cp -a _from_developer "$log"
 fi
 
 if [ -f explanation ]; then
@@ -186,11 +199,22 @@ if [ -f explanation ]; then
 $(< explanation)${NC}
 ================================================
 "
+    echo "
+
+## Explanation from AI
+
+In addition to a possible commit message above, the AI also offered
+this conversation explanation in response to the prompt.
+
+---start-of-explanation---
+$(< explanation)
+---end-of-explanation-used---
+" >> $commit_message_file
     mv explanation "$log/explanation"
 fi
 
-if dv-settings --check git-auto-commit=true; then
-    dv-git-commit
+if dv-settings --check auto-commit=true; then
+    dv-commit
 fi
 
 log_info "Details saved to $log"
