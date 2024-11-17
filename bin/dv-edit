@@ -77,6 +77,9 @@ if [ "$force" = 'false' ]; then
 fi
 
 log=$(dv-project-dir)/.dv/edits/$(uuidgen -r | cut -c 29-)
+rm -f $(dv-project-dir)/.dv/latest-edit
+ln -s "$log" $(dv-project-dir)/.dv/latest-edit
+
 infile="$log/to-ai.mime"
 outfile="$log/from-ai.mime"
 export DV_LOGFILE="$log/events"
@@ -88,6 +91,7 @@ args=()
 
 if [ -n "$prompt" ]; then
     args+=(user-prompt="$prompt")
+    echo "$prompt" > "$log/prompt.md"
 else
     log_error "Missing prompt. Use --prompt or DV_PROMPT or dv-edit-*"
     exit 1
@@ -180,7 +184,7 @@ if [ -f explanation ]; then
 $(< explanation)${NC}
 ================================================
 "
-    mv explanation "$from/explanation-renamed"
+    mv explanation "$log/explanation"
 fi
 
 if dv-settings --check git-auto-commit=true; then
