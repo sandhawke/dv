@@ -1,0 +1,27 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+# Check if current directory is a git repository
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "Error: Not a git repository" >&2
+    exit 1
+fi
+
+# Get status, suppress stdout but keep stderr
+git_status=$(git status --porcelain 2>/dev/null)
+
+# Check if there are any changes
+if [ -n "$git_status" ]; then
+    log_error 'There should be no unsaved changes.'
+    echo "Consider:
+
+git status
+git clean -n # preview what git clean would do
+git restore .
+git stash
+"
+    
+    exit 1
+fi
+
+exit 0
