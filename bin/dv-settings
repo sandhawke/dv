@@ -1,0 +1,90 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+# Ensure .dv/settings directory exists
+SETTINGS_DIR="$(dv-project-dir)/.dv/settings"
+mkdir -p "$SETTINGS_DIR"
+
+# Function to set a setting
+set_setting() {
+    local key="$1"
+    local value="$2"
+    
+    if [ -z "$key" ] || [ -z "$value" ]; then
+        echo "Usage: dv-settings key=value"
+        exit 1
+    fi
+    
+    echo "$value" > "$SETTINGS_DIR/$key"
+    echo "Setting '$key' set to '$value'"
+}
+
+# Function to get a setting
+get_setting() {
+    local key="$1"
+    local file="$SETTINGS_DIR/$key"
+    
+    if [ ! -f "$file" ]; then
+        echo "Setting '$key' not found"
+        exit 1
+    fi
+    
+    cat "$file"
+}
+
+# Function to check if a setting equals a value
+check_setting() {
+    local key="$1"
+    local expected="$2"
+    local file="$SETTINGS_DIR/$key"
+    
+    if [ ! -f "$file" ]; then
+        exit 1
+    fi
+    
+    local actual=$(cat "$file")
+    if [ "$actual" = "$expected" ]; then
+        exit 0
+    else
+        exit 1
+    fi
+}
+
+# Function to list all settings
+list_settings() {
+    if [ ! "$(ls -A "$SETTINGS_DIR")" ]; then
+        echo "No settings found.
+
+Tools can make up their own settings. Hard-coded suggestions:
+
+dv-settings git-auto-commit=true
+
+"
+        exit 0
+    fi
+    
+    for file in "$SETTINGS_DIR"/*; do
+        local key=$(basename "$file")
+        local value=$(cat "$file")
+        echo "$key=$value"
+    done
+}
+
+# Main logic
+if [ $# -eq 0 ]; then
+    list_settings
+    exit 0
+fi
+
+if [ $# -eq 2 ] && [ "$1" = "--check" ]; then
+    # Format: dv-settings --check key=value
+    IFS='=' read -r key value <<< "$2"
+    check_setting "$key" "$value"
+elif [[ "$1" == *"="* ]]; then
+    # Format: dv-settings key=value
+    IFS='=' read -r key value <<< "$1"
+    set_setting "$key" "$value"
+else
+    # Format: dv-settings key
+    get_setting "$1"
+fi
