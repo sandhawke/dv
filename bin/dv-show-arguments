@@ -1,0 +1,35 @@
+#!/bin/bash
+
+report_arguments() {
+    if [ $# -eq 0 ]; then
+        echo "No arguments were provided"
+        return
+    fi
+
+    echo "Total number of arguments: $#"
+    # echo "All arguments as a single string: $*"
+    
+    position=1
+    for arg in "$@"; do
+        echo "Argument $position:"
+        echo "  Value: '$arg'"
+        echo "  Length: ${#arg}"
+        if [ -z "$arg" ]; then
+            echo "  Type: empty string"
+        elif [ -f "$arg" ]; then
+            echo "  Type: regular file"
+        elif [ -d "$arg" ]; then
+            echo "  Type: directory"
+        elif [[ "$arg" =~ ^[0-9]+$ ]]; then
+            echo "  Type: integer number"
+        elif [[ "$arg" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            echo "  Type: decimal number"
+        else
+            echo "  Type: string"
+        fi
+        echo
+        ((position++))
+    done
+}
+
+report_arguments "$@"

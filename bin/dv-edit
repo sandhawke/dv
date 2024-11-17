@@ -5,28 +5,55 @@ cmd=$(basename $0)
 usage() {
     cat <<EOF
 
-Usage: $cmd [--help] [arguments]
+Usage: $cmd [--help] [options] [packmime paths]
 
-Feed the given paths to the AI with the given prompt. Will only modify files
-that are checked in and clean. Arguments are used for packmime and unpackmime.
-
-Will include DV_PROMPT value as a prompt, if set.
+Feed the given paths to the AI with the given prompt. By default
+(without --force), requires a git-clean directory, so you can see the
+changes with `git diff` and undo them with `git reset --hard HEAD`.
 
 Options:
   --help           Show this help message and exit
+  --prompt=|-p     set the prompt, defaults to use DV_PROMPT if set
+  [any unpackmime option, like --force]
+  [any packmime option, like --ignore]
+
+If dv-setting git-auto-commit=true, will git add and commit the edits,
+so to see changes use `git show` and undo with `git  reset --hard HEAD~1`.
+
 EOF
     exit 1
 }
 
 c1=()
 c2=()
+force=false
+prompt="${DV_PROMPT:-}"
+ask=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --help)
             usage
             ;;
-        --force|--patch|--preserve|--dryrun|--exclude-from)
+        --ask)
+            ask=true
+            shift
+            ;;
+        --prompt=*)
+            prompt=$(cut <<<"$1" -c 10-)
+            shift
+            ;;
+        -p*)
+            prompt=$(cut <<<"$1" -c 3-)
+            shift
+            ;;
+        --force)
+            # unpackmime flag, but we also want the flag for checking
+            force=true
+            c2+=("$1)
+            shift
+            ;;
+        --patch|--preserve|--dryrun|--exclude-from)
             # unpackmime args
             c2+=("$1)
             shift
@@ -45,45 +72,94 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-infile=$( mktemp --tmpdir dv-to-ai-XXXXXX.mime)
-outfile=$(mktemp --tmpdir dv-from-ai-XXXXXX.mime)
-response_prompt=$(< $(dv-path prompts/response-format.md))
-log=$DVDIR/edit-log
-
-echo IN PROGRESS
-exit 1
-
-mkdir -p .dv/edit-log
-
-# maybe not for us here --- dv-coding-pre
-mkdir -p _to_developer # too hard to optionally include it
-mkdir -p _from_developer 
-
-log_info running packmime 
-packmime user-prompt=$"$prompt" "${paths[@]}" --ignore="*~" --ignore=.dv --include=_to_developer --ignore=_from_developer --ignore=package-lock.json response-format-instructions=$"$response_prompt" > $infile
-t=$(dv-timestamp)
-cp -a _to_developer .dv/to-and-from/$t-to
-cp -a $infile .dv/to-and-from/$t-to
-
-info Sending $infile to LLM...
-info And reading response into $outfile
-export LLPIPE_LOG_RESPONSE=.dv/to-and-from/$t-to/response-headers.txt
-llpipe <$infile >$outfile
-
-unpack=$(unpackmime --patch $outfile)
-echo $unpack
-
-from=.dv/to-and-from/$(dv-timestamp)-from
-info saving _from_developer to $from
-mkdir -p "$from"
-echo "$unpack" > "$from"/unpack.txt
-cp -a _from_developer "$from"
-cp -a $outfile "$from"
-if [ -f explanation ]; then
-    cp -a explanation "$from"
+if [ "$force" = 'false' ]; then
+    dv-git-assert-clean
 fi
 
-# since this is really just about 'explanation' currently
-dv-coding-post
+log=$(dv-project-dir)/.dv/edits/$(uuidgen)
+infile="$log/to-ai.mime"
+outfile="$log/from-ai.mime"
+export DV_LOGFILE="$log/events"
 
-info "Using $infile $outfile"
+mkdir -p "$log"
+log_info "Logging to '$log'"
+
+args=()
+
+if [ -n "$prompt" ]; then
+    args+=(user-prompt="$prompt")
+else
+    log_error "Missing prompt. Use --prompt or DV_PROMPT or dv-edit-*"
+    exit 1
+fi
+
+args+=(--ignore="*~")
+args+=(--ignore=.dv)
+args+=(--ignore=_from_developer)
+args+=(--ignore=package-lock.json)
+
+# we want to send this, but it's probably in .gitignore so it will be
+# left out by packmime unless we say this
+if [ -d _to_developer ]; then
+    args+=(--include=_to_developer)
+fi
+
+# args+=()
+
+# all the passthru args, which should include paths
+if [ ${#c1[@]} -eq 0 ]; then
+    log_info "No paths given, defaulting to '.'"
+    c1+=(.)
+fi
+args+=("${c1[@]}")
+
+if [ "$ask" = 'true' ]; then
+    args+=(response_prompt="Please format your response for an ANSI terminal")
+else
+    args+=(response_prompt="$(< $(dv-path prompts/response-format.md))")
+fi
+
+dv-show-arguments "${args[@]}" > "$log/arguments-for-packmime"
+
+packmime "${args[@]}" > "$infile"
+
+log_info "llpipe starting"
+
+export LLPIPE_LOG_RESPONSE="$log/http-response.txt"
+llpipe < "$infile" > "$outfile"
+
+log_info "llpipe exit value $?"
+
+if [ "$ask" = 'true' ]; then
+    log_info "Using 'ask' mode, just outputing response"
+    echo -e "
+================ AI Response ================${GREEN}
+$(< $outfile)${NC}
+=============================================
+"
+    exit 0
+fi
+
+# WORK ON ARGS
+
+c2+=("$outfile")
+dv-show-arguments "${c2[@]}" > "$log/arguments-for-unpackmime"
+
+unpackmime "${c2[@]}" > "$log/unpack-stdout.txt"
+
+cat "$log/unpack-stdout.txt"
+
+from="$log/_from_developer"
+info saving _from_developer to $from
+mkdir -p "$from"
+cp -a _from_developer "$from"
+if [ -f explanation ]; then
+    echo -e "
+================ AI Explanation ================${GREEN}
+$(< explanation)${NC}
+================================================
+"
+    mv explanation "$from/explanation-renamed"
+fi
+
+log_info "Details saved to $log"

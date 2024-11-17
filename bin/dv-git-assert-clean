@@ -3,24 +3,49 @@ source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 # Check if current directory is a git repository
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    echo "Error: Not a git repository" >&2
+    echo "Not a git directory.  Consider
+
+git init && echo .dv >> .gitignore && git add -A && git commit -m'initial files'
+
+"
+    
     exit 1
 fi
 
-# Get status, suppress stdout but keep stderr
-git_status=$(git status --porcelain 2>/dev/null)
+# Check for various types of changes
+untracked=$(git ls-files --others --exclude-standard)
+unstaged=$(git diff --name-only)
+staged=$(git diff --cached --name-only)
 
-# Check if there are any changes
-if [ -n "$git_status" ]; then
-    log_error 'There should be no unsaved changes.'
-    echo "Consider:
-
-git status
-git clean -n # preview what git clean would do
-git restore .
-git stash
-"
+# If any changes are detected, provide helpful error and suggestions
+if [ -n "$untracked" ] || [ -n "$unstaged" ] || [ -n "$staged" ]; then
+    log_error 'Command requires there be no unsaved changes.'
     
+    # Show what type of changes were found
+    if [ -n "$untracked" ]; then
+        echo -e "\nUntracked files:" >&2
+        echo "$untracked" >&2
+    fi
+    
+    if [ -n "$unstaged" ]; then
+        echo -e "\nUnstaged changes:" >&2
+        echo "$unstaged" >&2
+    fi
+    
+    if [ -n "$staged" ]; then
+        echo -e "\nStaged changes:" >&2
+        echo "$staged" >&2
+    fi
+
+    echo "
+## Consider:
+git status
+git add -A && git commit
+git clean -n   # preview what git clean would do
+git clean -fd  # remove untracked files and directories
+git restore .  # discard changes to tracked files
+git stash      # save changes for later
+" >&2
     exit 1
 fi
 

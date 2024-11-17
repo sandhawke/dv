@@ -14,21 +14,31 @@ YELLOW='\033[1;93m'   # Bright Yellow
 BLUE='\033[1;96m'     # Bright CYAN
 NC='\033[0m'          # No Color
 
-# New logging functions
+write () {
+    if [ -n "${DV_LOGFILE:-}" ]; then
+        mkdir -p "$(dirname "$DV_LOGFILE")"
+        echo "$(date -u -Ins)" "$@" >> "$DV_LOGFILE"
+    fi
+}
+
 log_error() {
     echo -e "${RED}[$cmd ERROR] $*${NC}" >&2
+    write "$cmd ERROR $*"
 }
 
 log_warning() {
     echo -e "${YELLOW}[$cmd WARNING] $*${NC}" >&2
+    write "$cmd WARNING $*"
 }
 
 log_info() {
     echo -e "${BLUE}[$cmd INFO] $*${NC}" >&2
+    write "$cmd INFO $*"
 }
 
 log_success() {
     echo -e "${GREEN}$*${NC}" >&2
+    write "$cmd SUCCESS $*"
 }
 
 # Legacy functions with deprecation warnings
