@@ -5,5 +5,5 @@ if [ -f "$1" ]; then
     exit 0
 fi
 
-echo "MISSING REQUIRED FILE: '$1'"
+log_error "Required file is missing: '$1'"
 exit 1

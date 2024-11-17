@@ -1,12 +1,175 @@
 # dv - shell scripts to use LLMs for coding
 
-These scripts grow out of using a `packmime | llpipe | unpackmime` toolchain in collaborating with AI. They basically just enhance that toolchain with some conventions and prompts which use those conventions.
+These are scripts help in using LLMs (GPT4, Claude, etc) in software development. They are shell scripts because they're meant to be easy to modify, refactor, and use in different ways.
 
-These scripts are meant to be easy to understand and play with, so everyone can try to figure out how to make the best use of LLMs in software development.
+The basic idea of how we interact with an LLM from the command line is:
+1. Package some files and some prompts. We use packmime for this.
+2. Send them to an LLM and wait for a response. We use llpipe for this.
+3. Unpack the response into new files and modified files. We unpackmime for this.
+
+The current version does not use chat history, because it doesn't seem to offer much benefit and makes things more complicated.
+
+## Security
+
+Only run this stuff on an untrusted machine, like a fresh cloud host. We end up executing lots of code, such as tests, written by the LLM.
+
+It would be good to include an LXC system so you can run tests more safely.
+
+Do not trust any of the software made by an LLM until you've carefully reviewed it.
+
+The selection and authentication of LLM service (eg API keys) is done via llpipe.
+
+## Not Concurrent
+
+These scripts keep state in files in the project directory. If two
+people, or you working two windows, run commands that modify state,
+things could get very confused. Run the scripts in one window, and
+maybe look at the results in other windows.
+
+It's fine to do things in two different project directories at the
+same time.
+
+## Installation
+
+To install, clone the repo then add its bin directory to your path. No compilation is required as all tools are shell scripts. You will need /bin/bash on your system, along with a few other shell commands.
+
+1. Clone the repository:
+```terminal
+git clone https://github.com/sandhawke/dv.git
+```
+
+2. Add the `bin` directory to your PATH:
+```terminal
+echo 'export PATH="$PATH:/path/to/where/you/put/dv/bin"' >> ~/.bashrc
+source ~/.bashrc
+```
+3. Install the dependencies:
+```terminal
+npm install -g llpipe packmime unpackmime
+```
+
+Alternatively, you can try re-creating those NPM dependencies using AI. Prompts for doing so are in ./bootstrap.
+
+## Commands
+
+### dv-ask
+
+Simple basic command, essentially `packmime | llpipe`.
+
+```console
+$ dv-ask --prompt='In a word, with no punctuation, what color is the sky' --quiet
+Blue
+$ echo "What is one plus seven" > problem-1
+$ echo "Who was the first president of the US" > problem-2
+$ dv-ask -p'Please provide answers' . --quiet # output varies
+I'll provide answers to both problems: For problem-1: One plus seven equals 8 For problem-2: George Washington was the first President of the United States. He served two terms from 1789 to 1797.
+```
+
+### dv-edit
+
+This is basic workhorse command, essentially `packmime | llpipe | unpackmime`.
+
+```console
+...
+$ dv-edit --force -p'Please modify the problem files to include their answers' .
+...
+$ more * | cat
+```
+
+Normally, we don't use `--force` because we don't trust the LLM to do
+exactly what we want.
+
+Instead, we use git to keep our version safe. Then, when dv-edit changes things, we can see the change and revert it if necessary.
+
+Let's do that again from the start:
+
+```console
+$ echo "What is one plus seven" > problem-1
+$ echo "Who was the first president of the US" > problem-2
+$ git init && git add -A && git commit -m'initial files'
+...
+ create mode 100644 problem-1
+ create mode 100644 problem-2
+$ dv-edit -p'Please modify the problem files to include their answers' . # output varies
+xxx
+$ git diff # output varies
+```
+
+### dv-git-commit
+
+Stages and commits all the changes in the working space. Typically done after dv-edit, if the changes look good. Tries to uses a commit message created by the LLM during the edit, and adds a dv tag to the git author string.
+
+You may use `dv-settings auto-git-commit=true` to make dv-edit run dv-git-commit automatically after a successful edit. You may, of course, still roll back the changes (Eg: `git reset --hard HEAD~1`). This mode is especially useful if you're running dv-edit as a step in a longer process, and then want to use git tools to see everything that happened.
+
+dv-git-commit does **not** do a `git push`, and you'll want to carefully review all the changes before doing that.
+
+### dv-edit-OBJECT-ACTION
+
+This is a set of commands which you're encouraged to extend. Each one is a call to dv-edit with a hard-coded prompt, and sometimes shell actions before and after the dv-edit call.
+
+Examples:
+
+* dv-edit-spec-create
+* dv-edit-spec-improve
+* dv-edit-shelltest-create
+* dv-edit-shelltest-improve
+* dv-edit-plan-create
+* dv-edit-plan-improve
+* dv-edit-code-create
+* dv-edit-code-improve
+* dv-edit-unittest-create
+* dv-edit-code-debug
+* dv-edit-release-create
+
+Some of the actions they typically include:
+
+* dv-file-exists
+
+### dv-install
+
+Copies files from dv's templates directories into the project directories. Typcially used to set up boilerplate for development in a given language, with some additional bits of opinion.
+
+```console
+$ dv-install node20
+```
+
+### dv-testing-run
+
+Run the test scripts, saving the results into $DV_DIR_TO_AI/test-results
+
+### dv-tool-runner
+
+Runs the tool requests (eg npm search) and makes the responses available.
+
+With --show-prompt, output a prompt which tells folks how to use dv-tool-runner.
+
+Currently reads from _from_developer and writes to _to_developer, but
+there's some indication it would work better just working in ./notes.
+
+### dv-issue-create
+
+Create a new issue note, typically to be addressed by the next run of the LLM.
+
+
+
+
+
+
+
+
+
+
+
+----
+
+
+
+
+There are lots of directory structure assumpts these sc
 
 These scripts generally assume you're in a project directory of some kind that's also a cloned git repo. They feel okay modifying git-clean content and maybe commiting changes. Sometimes they make multiple subdirectory copies, to explore alternatives in parallel. Usually that would be under .dv so it wouldn't be confused with project content.
 
-**Concurrency warning**: These scripts keep state in files, and if two people (or you working two windows) run commands that modify state, things could get very confused. Run the scripts in one window, and maybe look at the results in other windows.
+
 
 ## Demo
 

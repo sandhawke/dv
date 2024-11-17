@@ -1,0 +1,20 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+# Print the dv version id, especially to identify in logs which
+# version of dv did this step.
+#
+# For now, working out of git, that's the short version id of the dv repo
+#
+# If dv is being distributed and installed by means other than git
+# clone, you should edit this script to output a suitable version id
+# for that distribution channel
+
+dir_arg=--git-dir=$(dv-path .git)
+id=$(git $dir_arg rev-parse --short HEAD)
+
+if git $dir_arg diff --quiet HEAD; then
+    echo $id
+else 
+    echo $id+unsaved
+fi

@@ -7,6 +7,12 @@ cmd=$(basename $0)
 # to be listed here, since this is used in git log.
 : "${DV_COMMAND:=$cmd}"
 
+if [ -z "$PROJECT_DIR" ]; then
+    if ! PROJECT_DIR=$(git rev-parse --show-toplevel); then
+        if [ -d .dv ]; then
+    fi
+        
+export 
 
 # ANSI color codes - updated for better visibility on dark backgrounds
 RED='\033[1;101m'      # Bright Red

@@ -1,0 +1,4 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+echo "[${DV_COMMAND:-dv} $(dv-version)] $(git config user.name) <$(git config user.email)>"

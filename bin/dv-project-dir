@@ -1,0 +1,24 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+if [ -n "${PROJECT_DIR-}" ]; then
+    echo "$PROJECT_DIR"
+    exit
+fi
+
+if git rev-parse --show-toplevel 2>/dev/null; then
+    exit
+fi
+
+while [ "$PWD" != "/" ]; do
+    if [ -d .dv ]; then
+        echo "$PWD"
+        exit
+    fi
+    cd ..
+    echo looking in $PWD
+done
+
+log_error 'No signs of a project directory found.  Try "mkdir .dv"'
+exit 1
+
