@@ -1,8 +1,14 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
-# Use environment variable instead of command line option
-export DV_SILENT=true
+# Parse command line arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --silent) export DV_SILENT=true ;;
+        *) log_error "Unknown parameter: $1"; exit 1 ;;
+    esac
+    shift
+done
 
 # Check if current directory is a git repository
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -25,21 +31,22 @@ if [ -n "$untracked" ] || [ -n "$unstaged" ] || [ -n "$staged" ]; then
 
     # Show what type of changes were found
     if [ -n "$untracked" ]; then
-        log_info "\nUntracked files:"
+        log_info "## Untracked files:"
         log_info "$untracked"
     fi
 
     if [ -n "$unstaged" ]; then
-        log_info "\nUnstaged changes:"
+        log_info "## Unstaged changes:"
         log_info "$unstaged"
     fi
 
     if [ -n "$staged" ]; then
-        log_info "\nStaged changes:"
+        log_info "## Staged changes:"
         log_info "$staged"
     fi
 
     log_info "
+
 ## Consider:
 git status
 git add -A && git commit
