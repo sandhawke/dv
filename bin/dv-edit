@@ -76,7 +76,7 @@ if [ "$force" = 'false' ]; then
     dv-git-assert-clean
 fi
 
-log=$(dv-project-dir)/.dv/edits/$(uuidgen)
+log=$(dv-project-dir)/.dv/edits/$(uuidgen -r | cut -c 29-)
 infile="$log/to-ai.mime"
 outfile="$log/from-ai.mime"
 export DV_LOGFILE="$log/events"
@@ -113,8 +113,11 @@ if [ ${#c1[@]} -eq 0 ]; then
 fi
 args+=("${c1[@]}")
 
+# if git?  if what??  We want this even if we're not doing auto-commit
+args+=(commit_message_prompt="Please attach a file '$commit_message_file' which is a clearly written, professional git commit message for all the file changes you are now providing. If you are not making any changes, skip this step.")
+
 if [ "$ask" = 'true' ]; then
-    args+=(response_prompt="Please format your response for an ANSI terminal")
+    args+=(response_prompt="Please format your response as plain text a terminal.")
 else
     args+=(response_prompt="$(< $(dv-path prompts/response-format.md))")
 fi
@@ -122,6 +125,8 @@ fi
 dv-show-arguments "${args[@]}" > "$log/arguments-for-packmime"
 
 packmime "${args[@]}" > "$infile"
+
+rm -rf _from_developer
 
 log_info "llpipe starting"
 
@@ -140,8 +145,14 @@ $(< $outfile)${NC}
     exit 0
 fi
 
-# WORK ON ARGS
+# Clean up args a little better?  But we might change args of unpackmime.
+# TODO: define interface a bit better. Like "--patch" should be the default
+# and be called --safe, I think? or --git-safe?
 
+if [ "$force" = 'false' ]; then
+    c2+=(--patch)
+fi
+  
 c2+=("$outfile")
 dv-show-arguments "${c2[@]}" > "$log/arguments-for-unpackmime"
 
@@ -149,17 +160,31 @@ unpackmime "${c2[@]}" > "$log/unpack-stdout.txt"
 
 cat "$log/unpack-stdout.txt"
 
-from="$log/_from_developer"
-info saving _from_developer to $from
-mkdir -p "$from"
-cp -a _from_developer "$from"
+# Some prompts may involved stuff being written here.  Should abstract
+# the name of this, since it might have semantics to some AIs. Like
+# $DIR_FROM_AI and $DIR_TO_AI but with possible quoting issues.
+
+if [ -d _from_developer ]; then
+    from="$log/_from_developer"
+    log_info saving _from_developer to $from
+    mkdir -p "$from"
+    cp -a _from_developer "$from"
+fi
+
 if [ -f explanation ]; then
+    # consider: add explanation to commit message, or otherwise make
+    # it long-term saved?  Also, saving the command history here, or
+    # at least the main prompt?
     echo -e "
 ================ AI Explanation ================${GREEN}
 $(< explanation)${NC}
 ================================================
 "
     mv explanation "$from/explanation-renamed"
+fi
+
+if dv-settings --check git-auto-commit=true; then
+    dv-git-commit
 fi
 
 log_info "Details saved to $log"

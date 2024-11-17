@@ -5,7 +5,13 @@ cmd=$(basename $0)
 # DV_COMMAND is the outer-most command, which is good to log, unless
 # something inside overrides it. Generally we'd like dv-prompt-* commands
 # to be listed here, since this is used in git log.
+#
+# So just 'export DV_COMMAND=foo' in a script if you want to manually
+# set this.
 : "${DV_COMMAND:=$cmd}"
+export DV_COMMAND
+
+commit_message_file=_from_developer/commit_message
 
 # ANSI color codes - updated for better visibility on dark backgrounds
 RED='\033[1;101m'      # Bright Red
