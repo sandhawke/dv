@@ -1,30 +1,16 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
-# Process command line options
-SILENT=false
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --silent)
-            SILENT=true
-            shift
-            ;;
-        *)
-            echo "Unknown option: $1" >&2
-            exit 1
-            ;;
-    esac
-done
+# Use environment variable instead of command line option
+export DV_SILENT=true
 
 # Check if current directory is a git repository
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    if ! $SILENT; then
-        echo "Not a git directory.  Consider
+    log_info "Not a git directory.  Consider
 
 git init && echo .dv >> .gitignore && git add -A && git commit -m'initial files'
 
 "
-    fi
     exit 1
 fi
 
@@ -35,26 +21,25 @@ staged=$(git diff --cached --name-only)
 
 # If any changes are detected, provide helpful error and suggestions
 if [ -n "$untracked" ] || [ -n "$unstaged" ] || [ -n "$staged" ]; then
-    if ! $SILENT; then
-        log_error 'Command requires there be no unsaved changes.'
+    log_error 'Command requires there be no unsaved changes.'
 
-        # Show what type of changes were found
-        if [ -n "$untracked" ]; then
-            echo -e "\nUntracked files:" >&2
-            echo "$untracked" >&2
-        fi
+    # Show what type of changes were found
+    if [ -n "$untracked" ]; then
+        log_info "\nUntracked files:"
+        log_info "$untracked"
+    fi
 
-        if [ -n "$unstaged" ]; then
-            echo -e "\nUnstaged changes:" >&2
-            echo "$unstaged" >&2
-        fi
+    if [ -n "$unstaged" ]; then
+        log_info "\nUnstaged changes:"
+        log_info "$unstaged"
+    fi
 
-        if [ -n "$staged" ]; then
-            echo -e "\nStaged changes:" >&2
-            echo "$staged" >&2
-        fi
+    if [ -n "$staged" ]; then
+        log_info "\nStaged changes:"
+        log_info "$staged"
+    fi
 
-        echo "
+    log_info "
 ## Consider:
 git status
 git add -A && git commit
@@ -62,8 +47,7 @@ git clean -n   # preview what git clean would do
 git clean -fd  # remove untracked files and directories
 git restore .  # discard changes to tracked files
 git stash      # save changes for later
-" >&2
-    fi
+"
     exit 1
 fi
 
