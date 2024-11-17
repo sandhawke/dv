@@ -28,23 +28,27 @@ write () {
 }
 
 log_error() {
-    echo -e "${RED}[$cmd ERROR] $*${NC}" >&2
     write "$cmd ERROR $*"
+    test -n "${DV_SILENT:-}" && return
+    echo -e "${RED}[$cmd ERROR] $*${NC}" >&2
 }
 
 log_warning() {
-    echo -e "${YELLOW}[$cmd WARNING] $*${NC}" >&2
     write "$cmd WARNING $*"
+    test -n "${DV_SILENT:-}" && return
+    echo -e "${YELLOW}[$cmd WARNING] $*${NC}" >&2
 }
 
 log_info() {
-    echo -e "${BLUE}[$cmd INFO] $*${NC}" >&2
     write "$cmd INFO $*"
+    test -n "${DV_SILENT:-}" && return
+    echo -e "${BLUE}[$cmd INFO] $*${NC}" >&2
 }
 
 log_success() {
-    echo -e "${GREEN}$*${NC}" >&2
     write "$cmd SUCCESS $*"
+    test -n "${DV_SILENT:-}" && return
+    echo -e "${GREEN}$*${NC}" >&2
 }
 
 # Legacy functions with deprecation warnings
