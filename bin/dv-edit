@@ -77,7 +77,7 @@ if [ "$force" = 'false' ]; then
 fi
 
 dotdv="$(dv-project-dir)/.dv"
-log="$dotdv/edits/$(uuidgen -r | cut -c 29-)
+log="$dotdv/edits/$(uuidgen -r | cut -c 29-)"
 mkdir -p "$log"
 abslog=$(realpath "$log")
 log_info "Logging to '$abslog'"
