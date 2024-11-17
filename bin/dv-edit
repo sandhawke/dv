@@ -76,16 +76,18 @@ if [ "$force" = 'false' ]; then
     dv-git-assert-clean
 fi
 
-log=$(dv-project-dir)/.dv/edits/$(uuidgen -r | cut -c 29-)
-rm -f $(dv-project-dir)/.dv/latest-edit
-ln -s "$log" $(dv-project-dir)/.dv/latest-edit
+dotdv="$(dv-project-dir)/.dv"
+log="$dotdv/edits/$(uuidgen -r | cut -c 29-)
+mkdir -p "$log"
+abslog=$(realpath "$log")
+log_info "Logging to '$abslog'"
+
+ln -s --force "$abslog" "$dotdv/latest-edit"
+log_info "Currenlty also $dotdv/latest-edit"
 
 infile="$log/to-ai.mime"
 outfile="$log/from-ai.mime"
 export DV_LOGFILE="$log/events"
-
-mkdir -p "$log"
-log_info "Logging to '$log'"
 
 args=()
 
