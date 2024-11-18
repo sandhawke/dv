@@ -79,6 +79,8 @@ handle_search_npmjs() {
     
     # Make the request
     curl -s -H "Accept: application/json" "$url"
+    log_info "$url"
+    log_success "Did npm search for '$query'"
 }
 
 # Function to handle npm-docs tool
@@ -191,7 +193,7 @@ process_request() {
             return 0
             ;;
     esac
-    
+
     # Verify response is valid JSON
     if ! is_valid_json "$response"; then
         echo "Error: Invalid JSON response for $request_file" >&2
@@ -209,10 +211,7 @@ $response
 
 # Instructions
 
-Summarize this response in a persistant location like docs/external or
-docs/issues, because this file is temporary. If you do not summarize
-this information for the future, it will likely need to be fetched
-again.
+Summarize this response in a persistant location such as notes/$request_basename, because this file is temporary. If you do not summarize this information for future use, it will likely need to be fetched again. Alternatively, you may be able to put it into practice now, in other files, in a way that will show future developers all they need to know.
 
 " > "$response_file"
 }

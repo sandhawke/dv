@@ -1,0 +1,18 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+dv-file-exists docs/specification.md
+
+export DV_PROMPT="
+To implement the provided specification, you may need additional information, such as which libraries are available.
+
+We have a search tool you can use to perform this research now.
+
+Here are the details:
+
+$(dv-tool-runner --show-prompt)
+"
+
+dv-edit
+
+ls -lR _from_developer
