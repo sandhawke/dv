@@ -1,6 +1,41 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
+usage() {
+    echo "Usage: $(basename $0) [options]"
+    echo
+    echo "Options:"
+    echo "  --loop=N   Number of debug loops to run (default: 1)"
+    echo "  --help     Display this help message"
+    exit 1
+}
+
+# Parse command line options
+loops=1
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --loop=*)
+            loops="${1#*=}"
+            if ! [[ "$loops" =~ ^[0-9]+$ ]]; then
+                log_error "Loop count must be a positive integer"
+                exit 1
+            fi
+            if [ "$loops" -lt 1 ]; then
+                log_error "Loop count must be at least 1"
+                exit 1
+            fi
+            ;;
+        --help)
+            usage
+            ;;
+        *)
+            log_error "Unknown option: $1"
+            usage
+            ;;
+    esac
+    shift
+done
+
 # or someone else?
 rm -rf _to_developer
 
@@ -16,16 +51,20 @@ Please examine the attached material and make any necessary improvements so that
 "
 
 n=1
-while [ $n -lt 15 ]; do
+while [ $n -le $loops ]; do
     dv-edit
 
     if dv-test; then
         log_success exiting debug loop with tests passing
         exit 0
     fi
-    
-    n=$n+1
+
+    n=$((n + 1))
 done
 
-log_warning too many loops, stopping
+if [ $loops -eq 1 ]; then
+    log_warning "Single debug iteration completed without success"
+else
+    log_warning "Reached maximum number of loops ($loops) without success"
+fi
 exit 1

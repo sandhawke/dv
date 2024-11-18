@@ -19,16 +19,6 @@ Do not trust any of the software made by an LLM until you've carefully reviewed 
 
 The selection and authentication of LLM service (eg API keys) is done via llpipe.
 
-## Not Concurrent
-
-These scripts keep state in files in the project directory. If two
-people, or you working two windows, run commands that modify state,
-things could get very confused. Run the scripts in one window, and
-maybe look at the results in other windows.
-
-It's fine to do things in two different project directories at the
-same time.
-
 ## Installation
 
 To install, clone the repo then add its bin directory to your path. No compilation is required as all tools are shell scripts. You will need /bin/bash on your system, along with a few other shell commands.
@@ -49,6 +39,30 @@ npm install -g llpipe packmime unpackmime
 ```
 
 Alternatively, you can try re-creating those NPM dependencies using AI. Prompts for doing so are in ./bootstrap.
+
+## Demo
+
+Here's a basic run-through:
+
+```console
+$ dv-init
+$ echo 'Program to print the primes between its two arguments, one per line, runnable as node ./src/primes.js' > docs/user-request.md
+$ git add -A && git commit -m'rough spec'
+$ dv-settings auto-commit=true
+$ dv-edit-spec-create
+$ dv-install-node20 
+$ npm install; git add -A ; git commit -m'node20 basic config'
+$ dv-edit-code-create
+$ dv-edit-code-debug --loop=10
+$ node src/primes.js 9000 9040
+9001
+9007
+9011
+9013
+9029
+```
+
+At this point, the git history should show the details of every iteration with the AI.
 
 ## Commands
 
