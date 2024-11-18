@@ -1,0 +1,42 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+name="$1"
+dest="$PWD"
+
+# should maybe make this robust to be run before having .dv ?
+PROJDIR="$(dv-project-dir)"
+if [ -z "$PROJDIR" ]; then
+    exit 1
+fi
+BACKUP_DIR="$PROJDIR/.dv/install/$(uuidgen -r | cut -c 29-)"
+
+
+src="$(dv-path install-from/"$name")"
+if [ ! -d "$src" ]; then
+    log_error "$src not found"
+    exit 1
+fi
+
+tmp=$(mktemp -d)
+cd "$src"
+rsync -a --exclude='*~' . "$tmp"
+
+cd "$tmp"
+if [ -f CUSTOMIZE.sh ]; then
+    log_info running CUSTOMIZE.sh
+   ./CUSTOMIZE.sh
+   rm ./CUSTOMIZE.sh
+fi
+
+rsync -a --exclude='*~' --backup --backup-dir="$BACKUP_DIR" . "$dest"
+
+if [ -d "$BACKUP_DIR" ]; then
+    log_info "Some existing files were modified. Backup copies are in"
+    log_info "$BACKUP_DIR"
+    log_info "List of Files:"
+    find "$BACKUP_DIR" -type f -ls
+fi
+
+log_success Installation complete.
+ 

@@ -16,7 +16,6 @@ while [ "$PWD" != "/" ]; do
         exit
     fi
     cd ..
-    echo looking in $PWD
 done
 
 log_error 'No signs of a project directory found.  Try "mkdir .dv"'

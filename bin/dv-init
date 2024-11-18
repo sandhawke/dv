@@ -1,103 +1,31 @@
 #!/bin/bash
-# -*-mode: sh-mode -*-
-set -euo pipefail
-source $(dv-path lib/output.sh)
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
-# Lots of design issues
-#
-# Should templates sometimes/always be a repo we're cloning?
-# -- git clone /path/to/local/repo
-#
-# How do we customize?  run and delete a TEMPLATE_INSTALL.sh
-# or LOCALIZE_TEMPLATE.sh
-#
-
-
-usage() {
-  echo "Usage: $0 <template-name>"
-  echo
-  echo "Options:"
-  echo "  --force       Enable force mode."
-  echo "  --help        Display this help message and exit."
-  echo
-  echo "Description:"
-  echo "  Initialize a directory for use by dv, using a template"
-  exit 1
-}
-
-if [ -d '.dv' ]; then
-    echo "There's already a .dv here" >&2
+if [ -f .gitignore ]; then
+    log_error "There's a .gitignore here, which suggests you won't want init"
     exit 1
 fi
 
-if [ -d '.git' ]; then
-    echo "There's already a .git here" >&2
-    exit 1
-fi
+git init
+dv-git-assert-clean
 
-FORCE_MODE=false
-template_name=""
+echo "# used by dv but not good to store in repo
+.dv
+_from_developer
+_to_developer
+" >> .gitignore
 
-while [[ "$#" -gt 0 ]]; do
-    case "$1" in
-    --force)
-      FORCE_MODE=true
-      shift
-      ;;
-    --help)
-      usage
-      ;;
-    --*)
-      echo "Unknown option: $1"
-      usage
-      ;;
-     *)
-         # echo "Template name $1"
-        template_name="$1"
-        break
-      ;;
-  esac
-done
+mkdir -p "$(dv-project-dir)/.dv"
+mkdir docs
+mkdir notes
 
-if [ -z "$template_name" ]; then
-   usage
-fi
+git add -A
+git commit -m'initial commit'
 
-src=$(dv-path templates/"$template_name")
+log_success "Setup complete. Consider:
 
-if [ ! -d $src ]; then
-    echo "Template name '$template_name' not found in $(dv-path templates)"
-    exit 1
-fi
+$EDITOR docs/user-request.md
+dv-edit-spec-create
+dv-edit -p'whatever you want it to do'
 
-# consider .dv/devdocs, linked into _to_developer
-dest=.
-
-#
-#if [ "$FORCE_MODE" = false ]; then
-#    if [ -d $dest ]; then
-#        echo "$dest exists, running diff. Use --force if you want to rsync anyway."
-#        if diff --exclude='*~' -r $src $dest; then
-#            echo "diff shows no local changes."
-#        fi
-#        exit 0
-#    fi
-#fi
-
-mkdir -p "$dest"
-rsync -a --exclude='*~' "$src/"{.??,}* "$dest"
-
-mkdir .dv
-
-git init -q
-git add --all
-git commit -q -m"[dv-init] initial files from template $template_name"
-
-success "Setup complete.
-
-Now:
-1. edit docs/spec.md or README.md to say what you want
-2. use dv-step or dv-loop" 
-
-
-
+"

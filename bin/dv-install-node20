@@ -1,0 +1,5 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+# just easy auto-complete.  COULD do custom stuff but eh.
+dv-install node20
