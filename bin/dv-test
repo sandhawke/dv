@@ -1,5 +1,5 @@
 #!/bin/bash
-trap 'echo bash failure line ${LINENO} "${BASH_COMMAND}" "$?"' ERR
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 # Parse command line arguments
 KEEP_RESULTS=0
@@ -51,13 +51,14 @@ run_test() {
     
     # Run the test in working directory and capture both stdout and stderr
     (cd "$working_dir" && bash "$absolute_test_path") > "$result_dir/stdout" 2> "$result_dir/stderr"
-    if [ $? -eq 0 ]; then
+    local value=$?
+    if [ $value -eq 0 ]; then
         echo "PASS" > "$result_dir/status"
         ((passed_tests++))
         echo "✓ ${test_name} passed"
         passed_test_dirs+=("$result_dir")
     else
-        echo "FAIL" > "$result_dir/status"
+        echo "FAIL, exit value $value" > "$result_dir/status"
         ((failed_tests++))
         echo "✗ ${test_name} failed, see $result_dir"
     fi

@@ -82,7 +82,8 @@ mkdir -p "$log"
 abslog=$(realpath "$log")
 log_info "Logging to '$abslog'"
 
-ln -s --force "$abslog" "$dotdv/latest-edit"
+rm -f "$dotdv/latest-edit"
+ln -s "$abslog" "$dotdv/latest-edit" # --force does weird things
 log_info "Currenlty also $dotdv/latest-edit"
 
 infile="$log/to-ai.mime"

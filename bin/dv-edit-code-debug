@@ -1,0 +1,21 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+# or someone else?
+rm -rf _to_developer
+
+# could branch on this
+dv-test || log_warning Some tests failed
+
+export DV_PROMPT="
+We need you to implement this specification carefully, as a professional software engineer dedicated to creating bug-free easy-to-understand well-organized code.
+
+We also need unit tests, and when appropriate, acceptance tests.
+
+Please examine the attached material and make any necessary improvements so that we have top-quality code.
+"
+
+dv-edit
+
+# just for the user:
+dv-test || log_warning Some tests failed

@@ -1,0 +1,14 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+export DV_PROMPT="
+Implement this specification carefully, as a professional software engineer
+dedicated to creating bug-free easy-to-understand well-organized code.
+
+Also implement unit tests, and when appropriate, acceptance tests.
+"
+
+dv-edit
+
+# just for the user:
+dv-test || log_warning Some tests failed
