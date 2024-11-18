@@ -15,7 +15,17 @@ We also need unit tests, and when appropriate, acceptance tests.
 Please examine the attached material and make any necessary improvements so that we have top-quality code.
 "
 
-dv-edit
+n=1
+while [ $n -lt 15 ]; do
+    dv-edit
 
-# just for the user:
-dv-test || log_warning Some tests failed
+    if dv-test; then
+        log_success exiting debug loop with tests passing
+        exit 0
+    fi
+    
+    n=$n+1
+done
+
+log_warning too many loops, stopping
+exit 1
