@@ -4,6 +4,11 @@ source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 # BUG - currently we're inconsistent about this
 cd $(dv-project-dir)
 
+if dv-git-assert-clean --silent; then
+    log_warning 'Git clean, nothing to commit'
+    exit 0 # some principle as git commit returning 0 when clean
+fi
+
 function ignore () {
     local path="$1"
     if ! grep -Fx "$path" .gitignore >/dev/null; then
@@ -27,7 +32,8 @@ fi
 
 git add -A
 
-log_info "Using message: $message"
+line1=$(head -1 <<< "$message")
+log_info "Using message: $line1..."
 
 author=$(dv-git-author)
 log_info "Using author: $author"

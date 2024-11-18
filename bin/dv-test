@@ -41,6 +41,7 @@ run_test() {
     local result_dir="_to_developer/test-results/${test_name}"
     local working_dir="${result_dir}/working_directory"
     local absolute_test_path=$(readlink -f "$test_file")
+    local value=''
     
     # Create test result directory and working directory
     mkdir -p "$result_dir"
@@ -50,20 +51,21 @@ run_test() {
     echo "Running test: ${test_name}"
     
     # Run the test in working directory and capture both stdout and stderr
-    (cd "$working_dir" && bash "$absolute_test_path") > "$result_dir/stdout" 2> "$result_dir/stderr"
-    local value=$?
-    if [ $value -eq 0 ]; then
+    if (cd "$working_dir" && bash "$absolute_test_path") > "$result_dir/stdout" 2> "$result_dir/stderr"; then
+        value=$?
+        echo exit value PASS $value 
         echo "PASS" > "$result_dir/status"
-        ((passed_tests++))
+        ((passed_tests++)) || true # workaround
         echo "✓ ${test_name} passed"
         passed_test_dirs+=("$result_dir")
     else
+        value=$?
+        echo exit value FAIL $value
         echo "FAIL, exit value $value" > "$result_dir/status"
-        ((failed_tests++))
+        ((failed_tests++)) || true # workaround bash being annoying
         echo "✗ ${test_name} failed, see $result_dir"
     fi
-    
-    ((total_tests++))
+    ((total_tests++)) || true # workaround bash being annoying
 }
 
 # Main execution
@@ -112,6 +114,11 @@ if [ $KEEP_RESULTS -eq 0 ]; then
     done
 fi
 
-echo "dv-test exiting with $failed_tests failed tests"
-# Exit with failure if any tests failed
-exit "$failed_tests"
+if [ $failed_tests -gt 0 ]; then
+    log_warning "dv-test exiting with $failed_tests failed tests, leaving files"
+    find _to_developer/test-results -type f
+    exit 1
+else
+    log_success "All $passed_tests test passed!"
+    exit 0
+fi
