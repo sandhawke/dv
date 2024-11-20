@@ -1,9 +1,0 @@
-node_modules
-_from_developer
-_to_developer
-# I know this should be checked in, but right now we have an issue
-# with dv-test doing an 'npm install' which changes this at a time
-# we need to be git clean.
-package-lock.json
-.dv
-

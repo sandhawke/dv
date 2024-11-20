@@ -1,4 +1,0 @@
-write-spec
-create-shell-tests
-write code
-create release documents.md
