@@ -1,6 +1,6 @@
 # dv - shell scripts to use LLMs for coding
 
-These are scripts to help use LLMs (GPT4, Claude, etc) in software development. They are shell scripts because they're meant to be easy to modify, refactor, and use in different ways.
+These are scripts to help software engineers use LLMs (GPT4, Claude, etc) in software development. They are shell scripts because they're meant to be easy to modify, refactor, and use in different ways.
 
 The basic idea of how we interact with an LLM from the command line is:
 1. Package some files and some prompts. We use packmime for this.
