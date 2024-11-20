@@ -2,7 +2,7 @@
 
 These are scripts to help software engineers use LLMs (GPT4, Claude, etc) in software development. They are shell scripts because they're meant to be easy to modify, refactor, and use in different ways.
 
-For simple stuff, it's like copying/pasting to the chat service, but you save some click. But since it's automated, now we can write higher-level scripts, like having the LLM keep trying until its code passes the test suite.
+For simple stuff, it's like copying/pasting to the chat service, but you save some clicks. But since it's automated, now we can write higher-level scripts, like having the LLM see it's failing the test suite and try again.
 
 The basic idea of how we interact with an LLM from the command line is:
 1. Package some files and some prompts. We use packmime for this.
@@ -115,7 +115,7 @@ At this point you may want to:
 * `git log --oneline`        # overview of all the steps taken
 * `git reset --soft HEAD~1`  # uncommit, so you can revise a bit
 * `git reset --hard HEAD~1`  # complete undo that step
-* `git commit --ament`       # edit the commit message
+* `git commit --amend`       # edit the commit message
 
 ### dv-edit-OBJECT-ACTION
 
@@ -160,94 +160,3 @@ With --show-prompt, output a prompt which tells folks how to use dv-tool-runner.
 Currently reads from _from_developer and writes to _to_developer, but
 there's some indication it would work better just working in ./notes.
 
-### dv-issue-create
-
-Create a new issue note, typically to be addressed by the next run of the LLM.
-
-
-
-
-
-
-
-
-
-
-
-----
-
-
-
-
-There are lots of directory structure assumpts these sc
-
-These scripts generally assume you're in a project directory of some kind that's also a cloned git repo. They feel okay modifying git-clean content and maybe commiting changes. Sometimes they make multiple subdirectory copies, to explore alternatives in parallel. Usually that would be under .dv so it wouldn't be confused with project content.
-
-
-
-## Demo
-
-```terminal
-$ export ANTHROPIC_API_KEY="sk-ant-api03-..."
-$ pushd $(mktemp -d)
-$ echo "This is a re-implementation of 'tee' based on the man page" > README.md
-$ echo "node_modules" >> .gitignore
-$ echo "_from_developer" >> .gitignore
-$ dv-coding-setup
-$ git init
-$ git add --all
-$ git commit -m'initial commit'
-$ dv-coding-step
-$ dv-coding-step
-$ dv-coding-step
-...
-```
-
-There are some older scripts like dv-self-test that need to be updated
-
-## Security
-
-Only run this stuff on an untrusted machine, like a fresh cloud host.
-
-It would be good to include an LXC system to do that automatically for you.
-
-## Installation
-
-To install, clone the repo then add its bin directory to your path. No compilation is required as all tools are shell scripts. You will need /bin/bash on your system, along with a few other shell commands.
-
-1. Clone the repository:
-```terminal
-git clone https://github.com/sandhawke/dv.git
-```
-
-2. Add the `bin` directory to your PATH:
-```terminal
-echo 'export PATH="$PATH:/path/to/where/you/put/dv/bin"' >> ~/.bashrc
-source ~/.bashrc
-```
-3. Install the dependencies:
-```terminal
-npm install -g llpipe packmime unpackmime
-```
-
-Alternatively, you can try re-creating the dependencies using AI. Prompts for doing so are in ./bootstrap.
-
-## Evaluating dv (not working)
-
-When you change dv's logic or its prompts, how do you know if you've made an improvement? Can you tell which LLMs are better? There's some real randomness in LLM execution that makes them hard to measure.
-
-One approach to systematic testing of dv is to ask it to re-implement standard unix commands. This has the downside that the source code is probably in the training data. However, if that were enough, they're routinely pass this test and they don't. For one thing, the code is usually much larger than the generation max_tokens limit.
-
-For our baseline testing, we select a few well-known unix commands which run as a single process as an unprivileged user.
-
-* Ten from fileutils: chmod cp dd df du ln ls mkdir mv touch
-* Ten from textutils: cat cut head od sort split tail tr uniq wc
-* Five very hard: grep find tar awk gzip
-* Five extremely hard: ffmpeg busybox bash gcc python
-
-On advantage of this approach is we can see if the test suite accepts the system implementations.
-
-```terminal
-$ dv-self-test TEXT
-... runs the ten textutil tests
-```
