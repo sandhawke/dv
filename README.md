@@ -1,6 +1,6 @@
 # dv - shell scripts to use LLMs for coding
 
-These are scripts help in using LLMs (GPT4, Claude, etc) in software development. They are shell scripts because they're meant to be easy to modify, refactor, and use in different ways.
+These are scripts to help use LLMs (GPT4, Claude, etc) in software development. They are shell scripts because they're meant to be easy to modify, refactor, and use in different ways.
 
 The basic idea of how we interact with an LLM from the command line is:
 1. Package some files and some prompts. We use packmime for this.
@@ -11,9 +11,9 @@ The current version does not use chat history, because it doesn't seem to offer 
 
 ## Security
 
-Only run this stuff on an untrusted machine, like a fresh cloud host. We end up executing lots of code, such as tests, written by the LLM.
+Only run this stuff on an untrusted machine, like a fresh cloud host. We end up executing lots of code, such as tests, written by the LLM. It could easily delete or corrupt files on whatever machine it runs.
 
-It would be good to include an LXC system so you can run tests more safely.
+It would be good to include an LXC system to make this all more convenient.
 
 Do not trust any of the software made by an LLM until you've carefully reviewed it.
 
@@ -42,18 +42,13 @@ Alternatively, you can try re-creating those NPM dependencies using AI. Prompts 
 
 ## Demo
 
-Here's a basic run-through:
+Here's an example using a fairly high-level script.
 
 ```console
 $ dv-init
 $ echo 'Program to print the primes between its two arguments, one per line, runnable as node ./src/primes.js' > docs/user-request.md
 $ git add -A && git commit -m'rough spec'
-$ dv-settings auto-commit=true
-$ dv-edit-spec-create
-$ dv-install-node20 
-$ npm install; git add -A ; git commit -m'node20 basic config'
-$ dv-edit-code-create
-$ dv-edit-code-debug --loop=10
+$ dv-sequence-basic
 $ node src/primes.js 9000 9040
 9001
 9007
@@ -64,6 +59,8 @@ $ node src/primes.js 9000 9040
 
 At this point, the git history should show the details of every iteration with the AI.
 
+Definitely look at what dv-sequence-basic does, and try different prompts, etc.
+
 ## Commands
 
 ### dv-ask
@@ -71,11 +68,13 @@ At this point, the git history should show the details of every iteration with t
 Simple basic command, essentially `packmime | llpipe`.
 
 ```console
-$ dv-ask --prompt='In a word, with no punctuation, what color is the sky' --quiet
+$ dv-ask --prompt='In a word, with no punctuation, what color is the sky'
+...
 Blue
+...
 $ echo "What is one plus seven" > problem-1
 $ echo "Who was the first president of the US" > problem-2
-$ dv-ask -p'Please provide answers' . --quiet # output varies
+$ dv-ask -p'Please provide answers' . # output varies
 I'll provide answers to both problems: For problem-1: One plus seven equals 8 For problem-2: George Washington was the first President of the United States. He served two terms from 1789 to 1797.
 ```
 
@@ -85,7 +84,7 @@ This is basic workhorse command, essentially `packmime | llpipe | unpackmime`.
 
 ```console
 ...
-$ dv-edit --force -p'Please modify the problem files to include their answers' .
+$ dv-edit --force -p'Please modify the problem files to include their answers'
 ...
 $ more * | cat
 ```
@@ -105,11 +104,10 @@ $ git init && git add -A && git commit -m'initial files'
  create mode 100644 problem-1
  create mode 100644 problem-2
 $ dv-edit -p'Please modify the problem files to include their answers' . # output varies
-xxx
-$ git diff # output varies
+I will modify the problem files to include their answers. I'll append the answers after the questions, separated by a line containing "Answer:".
 ```
 
-### dv-git-commit
+### dv-commit
 
 Stages and commits all the changes in the working space. Typically done after dv-edit, if the changes look good. Tries to uses a commit message created by the LLM during the edit, and adds a dv tag to the git author string.
 
@@ -121,7 +119,7 @@ dv-git-commit does **not** do a `git push`, and you'll want to carefully review 
 
 This is a set of commands which you're encouraged to extend. Each one is a call to dv-edit with a hard-coded prompt, and sometimes shell actions before and after the dv-edit call.
 
-Examples:
+Examples (some TBD):
 
 * dv-edit-spec-create
 * dv-edit-spec-improve
@@ -147,7 +145,7 @@ Copies files from dv's templates directories into the project directories. Typci
 $ dv-install node20
 ```
 
-### dv-testing-run
+### dv-test
 
 Run the test scripts, saving the results into $DV_DIR_TO_AI/test-results
 
