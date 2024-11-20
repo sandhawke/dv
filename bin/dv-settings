@@ -1,49 +1,95 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
-# Ensure .dv/settings directory exists
-SETTINGS_DIR="$(dv-project-dir)/.dv/settings"
-mkdir -p "$SETTINGS_DIR"
+# Define settings directories
+PROJECT_SETTINGS_DIR="$(dv-project-dir)/.dv/settings"
+log_debug PROJECT_SETTINGS_DIR="$PROJECT_SETTINGS_DIR"
+
+UPPER_DIR="$(dv-project-dir-upper || true)"
+PROJECT_UPPER_SETTINGS=""
+if [ -n "$UPPER_DIR" ] && [ "$UPPER_DIR" != "$(dv-project-dir)" ]; then
+    PROJECT_UPPER_SETTINGS="$UPPER_DIR/.dv/settings"
+fi
+DEFAULT_SETTINGS_DIR="$(dv-path default-settings)"
+
+# Ensure project settings directory exists
+mkdir -p "$PROJECT_SETTINGS_DIR"
 
 # Function to set a setting
 set_setting() {
     local key="$1"
     local value="$2"
-    
-    if [ -z "$key" ] || [ -z "$value" ]; then
+
+    if [ -z "$key" ]; then
         echo "Usage: dv-settings key=value"
         exit 1
     fi
-    
-    echo "$value" > "$SETTINGS_DIR/$key"
-    echo "Setting '$key' set to '$value'"
+
+    if [ -z "$value" ]; then
+        # Remove the setting if empty value
+        rm -f "$PROJECT_SETTINGS_DIR/$key"
+        echo "Setting '$key' removed"
+    else
+        echo "$value" > "$PROJECT_SETTINGS_DIR/$key"
+        echo "Setting '$key' set to '$value'"
+    fi
 }
 
 # Function to get a setting
 get_setting() {
     local key="$1"
-    local file="$SETTINGS_DIR/$key"
-    
-    if [ ! -f "$file" ]; then
+    local value=""
+    local found=false
+
+    # Check project-specific settings first
+    if [ -f "$PROJECT_SETTINGS_DIR/$key" ]; then
+        value=$(cat "$PROJECT_SETTINGS_DIR/$key")
+        log_info "Setting '$key' found in project settings"
+        found=true
+    # Check project dir settings next if upper directory exists and is different
+    elif [ -n "$PROJECT_UPPER_SETTINGS" ] && [ -f "$PROJECT_UPPER_SETTINGS/$key" ]; then
+        value=$(cat "$PROJECT_UPPER_SETTINGS/$key")
+        log_info "Setting '$key' found in upper settings"
+        found=true
+    # Finally check default settings
+    elif [ -f "$DEFAULT_SETTINGS_DIR/$key" ]; then
+        value=$(cat "$DEFAULT_SETTINGS_DIR/$key")
+        log_info "Setting '$key' found in default settings"
+        found=true
+    fi
+
+    if [ "$found" = true ]; then
+        echo "$value"
+    else
         echo "Setting '$key' not found"
         exit 1
     fi
-    
-    cat "$file"
 }
 
 # Function to check if a setting equals a value
 check_setting() {
     local key="$1"
     local expected="$2"
-    local file="$SETTINGS_DIR/$key"
-    
-    if [ ! -f "$file" ]; then
+    local value=""
+    local found=false
+
+    # Check all locations in order
+    if [ -f "$PROJECT_SETTINGS_DIR/$key" ]; then
+        value=$(cat "$PROJECT_SETTINGS_DIR/$key")
+        found=true
+    elif [ -n "$PROJECT_UPPER_SETTINGS" ] && [ -f "$PROJECT_UPPER_SETTINGS/$key" ]; then
+        value=$(cat "$PROJECT_UPPER_SETTINGS/$key")
+        found=true
+    elif [ -f "$DEFAULT_SETTINGS_DIR/$key" ]; then
+        value=$(cat "$DEFAULT_SETTINGS_DIR/$key")
+        found=true
+    fi
+
+    if [ "$found" = false ]; then
         exit 1
     fi
-    
-    local actual=$(cat "$file")
-    if [ "$actual" = "$expected" ]; then
+
+    if [ "$value" = "$expected" ]; then
         exit 0
     else
         exit 1
@@ -52,7 +98,29 @@ check_setting() {
 
 # Function to list all settings
 list_settings() {
-    if [ ! "$(ls -A "$SETTINGS_DIR")" ]; then
+    local has_settings=false
+
+    # Function to list settings from a directory
+    list_from_dir() {
+        local dir="$1"
+        local prefix="$2"
+        if [ -d "$dir" ] && [ "$(ls -A "$dir" 2>/dev/null)" ]; then
+            has_settings=true
+            echo "$prefix:"
+            for file in "$dir"/*; do
+                local key=$(basename "$file")
+                local value=$(cat "$file")
+                echo "$key=$value"
+            done
+            echo
+        fi
+    }
+
+    list_from_dir "$PROJECT_SETTINGS_DIR" "Project Settings"
+    [ -n "$PROJECT_UPPER_SETTINGS" ] && list_from_dir "$PROJECT_UPPER_SETTINGS" "Upper Settings"
+    list_from_dir "$DEFAULT_SETTINGS_DIR" "Default Settings"
+
+    if [ "$has_settings" = false ]; then
         echo "No settings found.
 
 Tools can make up their own settings. Hard-coded suggestions:
@@ -60,14 +128,7 @@ Tools can make up their own settings. Hard-coded suggestions:
 dv-settings auto-commit=true
 
 "
-        exit 0
     fi
-    
-    for file in "$SETTINGS_DIR"/*; do
-        local key=$(basename "$file")
-        local value=$(cat "$file")
-        echo "$key=$value"
-    done
 }
 
 # Main logic

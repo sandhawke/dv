@@ -1,0 +1,9 @@
+#!/bin/bash
+
+dv-settings auto-commit=true
+
+dv-install node20
+
+dv-edit-spec-create
+dv-edit-code-create
+dv-edit-code-debug --loop=10

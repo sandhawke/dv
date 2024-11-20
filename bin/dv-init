@@ -1,26 +1,34 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
-if [ -f .gitignore ]; then
-    log_error "There's a .gitignore here, which suggests you won't want init"
-    exit 1
+if [ -d .dv ]; then
+    log_info there is a .dv here so skipping init
+    exit 0
 fi
 
-git init
-dv-git-assert-clean
+if [ -d .git ]; then
+    dv-git-assert-clean
+else
+    git init --quiet
+fi
+
+# TODO: only add if missinge
 
 echo "# used by dv but not good to store in repo
 .dv
 _from_developer
 _to_developer
+
+# hack for dv, because this changes in places where it's hard to commit
+package-lock.json
 " >> .gitignore
 
-mkdir -p "$(dv-project-dir)/.dv"
-mkdir docs
-mkdir notes
+mkdir -p .dv
+mkdir docs || true
+mkdir notes || true
 
 git add -A
-git commit -m'initial commit'
+git commit --quiet -m'dv-init'
 
 log_success "Setup complete. Consider:
 

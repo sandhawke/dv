@@ -15,7 +15,7 @@ Use formal languages (eg BNF) and technical jargon when they make the text more 
 Put your output in this file: docs/specification.md
 "
 
-dv-edit
+dv-edit docs/user-request.md
 
 dv-file-exists docs/specification.md
 

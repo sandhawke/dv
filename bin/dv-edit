@@ -172,19 +172,16 @@ cat "$log/unpack-stdout.txt"
 # $DIR_FROM_AI and $DIR_TO_AI but with possible quoting issues.
 
 if [ ! -f "$commit_message_file" ]; then
+    mkdir -p "$(dirname "$commit_message_file")"
     echo "AI generation failed to produce commit message" > $commit_message_file
 fi
 
 echo "
 
-## Prompt Used
+Prompt used to generate this commit
+===================================
 
-Here is the text used as a primary user prompt to generate this
-commit.
-
----start-of-prompt-used---
 $prompt
----end-of-prompt-used---
 " >> $commit_message_file
     
 if [ -d _from_developer ]; then
@@ -202,14 +199,10 @@ $(< explanation)${NC}
 "
     echo "
 
-## Explanation from AI
+Explanation Text From AI
+========================
 
-In addition to a possible commit message above, the AI also offered
-this conversation explanation in response to the prompt.
-
----start-of-explanation---
 $(< explanation)
----end-of-explanation-used---
 " >> $commit_message_file
     mv explanation "$log/explanation"
 fi

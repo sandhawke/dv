@@ -1,0 +1,6 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+export DV_PROMPT="Carefully example this source code, and consider if any elements of the code use obsolete or unnecesarily convoluted or obscure structures. Which ones would be most impactful to rewrite, without changing the behavior? Please go ahead and make those changes."
+
+dv-edit "$@"

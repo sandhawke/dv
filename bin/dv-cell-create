@@ -1,0 +1,49 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+slug="${1:-cell}"
+
+upper="$(dv-project-dir-upper)"
+cd "$upper"
+
+# log_info "Creating new cell directory with base name: $slug"
+
+# Find the highest numbered suffix currently in use
+highest=0
+for dir in "$slug"-*; do
+    if [ -d "$dir" ]; then
+        # log_info "Found existing directory: $dir"
+        suffix="${dir#$slug-}"
+        if [[ "$suffix" =~ ^[0-9]+$ ]]; then
+            if [ "$suffix" -gt "$highest" ]; then
+                highest=$suffix
+                # log_info "New highest suffix found: $highest"
+            fi
+        fi
+    fi
+done
+
+# Increment the highest number
+next=$((highest + 1))
+new_dir="$slug-$next"
+
+# log_info "Creating new directory: $new_dir"
+
+if mkdir "$new_dir"; then
+    true
+    # log_success "New cell directory $new_dir"
+    # echo "$new_dir"    # save for pwd at end
+else
+    log_error "Failed to create directory: $new_dir"
+    exit 1
+fi
+
+cd "$new_dir"
+
+log_info "Running dv-init in $new_dir"
+
+dv-init
+
+echo "$upper" > .dv/upper
+
+pwd

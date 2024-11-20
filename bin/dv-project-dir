@@ -1,23 +1,27 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
+starting="$PWD"
+
 if [ -n "${PROJECT_DIR-}" ]; then
     echo "$PROJECT_DIR"
     exit
 fi
 
-if git rev-parse --show-toplevel 2>/dev/null; then
-    exit
-fi
+# git doesn't qualify us these days
+#if git rev-parse --show-toplevel 2>/dev/null; then
+#    exit
+#fi
 
 while [ "$PWD" != "/" ]; do
     if [ -d .dv ]; then
         echo "$PWD"
         exit
     fi
+    log_debug "moving up from $PWD"
     cd ..
 done
 
-log_error 'No signs of a project directory found.  Try "mkdir .dv"'
+log_error "No signs of a project directory found in '$starting'.  Try: dv-init"
 exit 1
 

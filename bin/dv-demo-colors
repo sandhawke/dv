@@ -7,6 +7,7 @@ log_error "This is an error message"
 log_warning "This is a warning message"
 log_info "This is an info message"
 log_success "This is a success message"
+log_debug "This is a debug message"
 
 echo -e "\nTesting legacy functions (will show deprecation warnings):"
 error "This is an error message"

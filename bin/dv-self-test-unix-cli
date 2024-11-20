@@ -1,0 +1,13 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+cmd="$1"
+
+cd $(dv-cell-create $cmd)
+echo "We need a drop-in replacement for the linux command '$cmd'. It should be runnable as ./src/cli.js [arguments ...]" > docs/user-request.md
+git add -A && git commit -m'rough spec'
+dv-sequence-basic
+
+git log --oneline
+
+log_success done in $PWD

@@ -14,10 +14,11 @@ export DV_COMMAND
 commit_message_file=_from_developer/commit_message
 
 # ANSI color codes - updated for better visibility on dark backgrounds
-RED='\033[1;101m'      # Bright Red
-GREEN='\033[1;92m'    # Bright Green
-YELLOW='\033[1;93m'   # Bright Yellow
-BLUE='\033[1;96m'     # Bright CYAN
+RED='\033[1;101m'    
+GREEN='\033[1;92m'   
+YELLOW='\033[1;93m'  
+BLUE='\033[1;96m'     # really cyan
+GRAY='\033[90m'       
 NC='\033[0m'          # No Color
 
 write () {
@@ -30,25 +31,32 @@ write () {
 log_error() {
     write "$cmd ERROR $*"
     test -n "${DV_SILENT:-}" && return
-    echo -e "${RED}[$cmd ERROR] $*${NC}" >&2
+    echo -e "${RED}$*${NC}" >&2
 }
 
 log_warning() {
     write "$cmd WARNING $*"
     test -n "${DV_SILENT:-}" && return
-    echo -e "${YELLOW}[$cmd WARNING] $*${NC}" >&2
+    echo -e "${YELLOW}$*${NC}" >&2
 }
 
 log_info() {
     write "$cmd INFO $*"
     test -n "${DV_SILENT:-}" && return
-    echo -e "${BLUE}[$cmd INFO] $*${NC}" >&2
+    echo -e "${BLUE}$*${NC}" >&2
 }
 
 log_success() {
     write "$cmd SUCCESS $*"
     test -n "${DV_SILENT:-}" && return
     echo -e "${GREEN}$*${NC}" >&2
+}
+
+log_debug() {
+    # default on/off ???
+    write "$cmd DEBUG $*"
+    test -n "${DV_SILENT:-}" && return
+    echo -e "${GRAY}[DEBUG] $*${NC}" >&2
 }
 
 # Legacy functions with deprecation warnings

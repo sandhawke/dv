@@ -29,13 +29,24 @@ if [ -f CUSTOMIZE.sh ]; then
    rm ./CUSTOMIZE.sh
 fi
 
+log_debug doing rsync
+
 rsync -a --exclude='*~' --backup --backup-dir="$BACKUP_DIR" . "$dest"
+
+log_debug checking for backups made
 
 if [ -d "$BACKUP_DIR" ]; then
     log_info "Some existing files were modified. Backup copies are in"
     log_info "$BACKUP_DIR"
     log_info "List of Files:"
     find "$BACKUP_DIR" -type f -ls
+fi
+
+cd "$dest"
+
+if dv-settings --check auto-commit=true; then
+    git add -A
+    git commit -m"dv-install $name" --quiet || true
 fi
 
 log_success Installation complete.

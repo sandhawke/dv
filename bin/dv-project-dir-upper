@@ -1,0 +1,26 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+if [ -n "${PROJECT_DIR_UPPER-}" ]; then
+    echo "$PROJECT_DIR_UPPER"
+    exit
+fi
+
+while [ "$PWD" != "/" ]; do
+    if [ -d .dv ]; then
+        if [ -f .dv/upper ]; then
+            upper="$(< .dv/upper)"
+            log_debug "Dir '$PWD' is cell in '$upper'"
+            cd "$upper"
+            continue
+        else
+            echo "$PWD"
+            exit
+        fi
+    fi
+    cd ..
+done
+
+log_error 'No signs of a project directory found.  Try "mkdir .dv"'
+exit 1
+

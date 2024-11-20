@@ -1,0 +1,5 @@
+#!/bin/bash
+
+export DV_PROMPT="Please analyze this codebase with extreme care, searching for any places where the code might behave differently from how its authors or the users might intend. Please explain the most serious of these flaws you find after your meticulous inspection."
+
+exec dv-edit --ask --force "$@"
