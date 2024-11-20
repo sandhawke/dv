@@ -82,38 +82,38 @@ I'll provide answers to both problems: For problem-1: One plus seven equals 8 Fo
 
 This is basic workhorse command, essentially `packmime | llpipe | unpackmime`.
 
-```console
-...
-$ dv-edit --force -p'Please modify the problem files to include their answers'
-...
-$ more * | cat
-```
-
-Normally, we don't use `--force` because we don't trust the LLM to do
-exactly what we want.
-
-Instead, we use git to keep our version safe. Then, when dv-edit changes things, we can see the change and revert it if necessary.
-
-Let's do that again from the start:
+Let's start again. This time, we'll put the files in git so we can see and
+control all the file changes the AI makes.
 
 ```console
+$ dv-init
 $ echo "What is one plus seven" > problem-1
 $ echo "Who was the first president of the US" > problem-2
-$ git init && git add -A && git commit -m'initial files'
-...
- create mode 100644 problem-1
- create mode 100644 problem-2
+$ git add -A && git commit -q -m'initial files'
 $ dv-edit -p'Please modify the problem files to include their answers' . # output varies
 I will modify the problem files to include their answers. I'll append the answers after the questions, separated by a line containing "Answer:".
+$ more prob* # output varies
+::::::::::::::
+problem-1
+::::::::::::::
+What is one plus seven
+
+Answer: 8
+::::::::::::::
+problem-2
+::::::::::::::
+Who was the first president of the US
+
+Answer: George Washington
 ```
 
-### dv-commit
+At this point you may want to:
 
-Stages and commits all the changes in the working space. Typically done after dv-edit, if the changes look good. Tries to uses a commit message created by the LLM during the edit, and adds a dv tag to the git author string.
-
-You may use `dv-settings auto-git-commit=true` to make dv-edit run dv-git-commit automatically after a successful edit. You may, of course, still roll back the changes (Eg: `git reset --hard HEAD~1`). This mode is especially useful if you're running dv-edit as a step in a longer process, and then want to use git tools to see everything that happened.
-
-dv-git-commit does **not** do a `git push`, and you'll want to carefully review all the changes before doing that.
+* `git show`                 # show what changed
+* `git log --oneline`        # overview of all the steps taken
+* `git reset --soft HEAD~1`  # uncommit, so you can revise a bit
+* `git reset --hard HEAD~1`  # complete undo that step
+* `git commit --ament`       # edit the commit message
 
 ### dv-edit-OBJECT-ACTION
 
