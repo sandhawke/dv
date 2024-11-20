@@ -2,6 +2,8 @@
 
 These are scripts to help software engineers use LLMs (GPT4, Claude, etc) in software development. They are shell scripts because they're meant to be easy to modify, refactor, and use in different ways.
 
+For simple stuff, it's like copying/pasting to the chat service, but you save some click. But since it's automated, now we can write higher-level scripts, like having the LLM keep trying until its code passes the test suite.
+
 The basic idea of how we interact with an LLM from the command line is:
 1. Package some files and some prompts. We use packmime for this.
 2. Send them to an LLM and wait for a response. We use llpipe for this.
