@@ -39,22 +39,32 @@ run_test() {
     local working_dir="${result_dir}/working_directory"
     local absolute_test_path=$(readlink -f "$test_file")
     local value=''
-    
+
     # Create test result directory and working directory
     mkdir -p "$result_dir"
     mkdir -p "$working_dir"
     export WORKING_DIR="$working_dir"
-    
+
     echo "Running test: ${test_name}"
-    
+
     # Run the test in working directory and capture both stdout and stderr
     if (cd "$working_dir" && bash "$absolute_test_path") > "$result_dir/stdout" 2> "$result_dir/stderr"; then
         value=$?
-        echo exit value PASS $value 
+        echo exit value PASS $value
         echo "PASS" > "$result_dir/status"
         ((passed_tests++)) || true # workaround
         echo "✓ ${test_name} passed"
         passed_test_dirs+=("$result_dir")
+
+        # If DV_POINTS is set, calculate and record points for passed test
+        if [ -n "${DV_POINTS:-}" ] && [ -n "${DV_POINTS_FILE:-}" ]; then
+            # Count total number of test files
+            local total_test_count=$(find {cl,cli-,}test -maxdepth 1 -name '[0-9a-zA-Z]*.sh' -type f | wc -l)
+            # Calculate points per test
+            local points_per_test=$(awk "BEGIN {printf \"%.2f\", ${DV_POINTS}/${total_test_count}}")
+            # Append points and test name to points file
+            echo "${points_per_test} ${test_name}" >> "${DV_POINTS_FILE}"
+        fi
     else
         value=$?
         echo exit value FAIL $value
