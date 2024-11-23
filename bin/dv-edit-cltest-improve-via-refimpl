@@ -4,7 +4,6 @@ source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 dv-file-exists docs/user-request.md
 dv-dir-exists cltest
 
-
 basic="We need a highly detailed test suite for command-line use of this program.
 
 Our format is  each test is in a file named like cltest/*.sh, to be run in bash. Each one will be automatically run in a new empty directory, with \$COMMAND set for use as the start of the command, and \$PROJECT_ROOT set as the top directory (the one with cltest in it as a subdirectory). The tests should not check or alter these environment variables.
@@ -70,34 +69,43 @@ Here are some general ideas of what to test. You'll need to adapt these for the 
 - cltest/supports_quiet_mode.sh
 - cltest/respects_no_prompt_flag.sh
 - cltest/allows_input_cancellation.sh
-
 "
 
-# there's slightly better logic in dv-edit-code-debug
+recent="$basic
+
+We still have some test failures after several attempts. What's going on?  Let's think about this very carefully and see how we can address this.
+"
+
+# duplication with dv-edit-code-debug, but we might want to change them
+# separately, so let's not factor it out.
 
 passing=0
-failing=0
+total=0
 
 while true; do
-    
+    ((total++)) || true
+    if [ $total -gt 15 ]; then
+        log_error "Too many loops ($total)"
+        exit 1
+    }
+
     if dv-cltest; then
         ((passing++)) || true
         log_info passing $passing times
         if [ $passing -gt 1 ]; then
-            echo improved and passing!
+            echo "improved and passing!"
             exit 0
         fi
         export DV_PROMPT="$improve"
     else
         passing=0
-        ((failing++)) || true
-        log_info failing $failing times
-        if [ $failing -gt 10 ]; then
-            echo 'Too many failures'
-            exit 1
+        if [ "$total" -gt 9 ]; then
+            dv-git-include 5
+            export DV_PROMPT="$recent"
+        else
+            export DV_PROMPT="$fix"
         fi
-        export DV_PROMPT="$fix"
     fi
-    
+
     dv-edit
 done
