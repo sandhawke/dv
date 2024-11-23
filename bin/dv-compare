@@ -13,6 +13,7 @@ asks the AI to compare them.
 Options:
     --prompt='string'    Specify custom prompt for comparison
                          (default: asks for detailed comparison)
+    --merge              Append a request to create a merge to the prompt
     --tag='string'       Specify prefix for renamed files (default: 'option')
     --git                Enable git history comparison mode
     --include-ref-name   Include git reference names in output filenames
@@ -45,6 +46,7 @@ tag="option"
 files=()
 git_mode=false
 include_ref_name=false
+merge=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -55,6 +57,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --tag=*)
             tag="${1#*=}"
+            shift
+            ;;
+        --merge)
+            merge=true
             shift
             ;;
         --git)
@@ -176,6 +182,11 @@ else
     for file in "${files[@]}"; do
         cp -a "$file" "$tempdir/$tag$counter"
         echo "Copied $file to $tempdir/$tag$counter"
+        # or --ignore it later?
+        # ls -alt "$tempdir/$tag$counter"
+        rm -rf "$tempdir/$tag$counter/.dv"
+        rm -rf "$tempdir/$tag$counter/_from_developer"
+        rm -f "$tempdir/$tag$counter/.gitignore"
         counter=$((counter + 1))
     done
 fi
@@ -189,6 +200,18 @@ if false; then
 fi
 
 log_info "Files are in $tempdir"
+
+if [ "$merge" = true ]; then
+    prompt="$prompt
+
+After this, please create a new merged version which has all the best qualities, to the extent you as an expert can combine them to produce something even better.
+
+To make this merged version, please attach a file merge.sh which is a shell script I can run to create merged version, in the directory merged, which is at least as good as any of the options, and if possible is better than any of them. The merge script should be mostly cp or rsync commands, but you can also use cat and patch heredocs, and similar commands as necessary.
+
+Attach this file by giving your response in mime multipart more, starting the attachment section (unless you need a different separator) with Content-Type: multipart/mixed; boundary=\"boundary-01\"
+
+"
+fi
 
 output=$(mktemp)
 log_info Awaiting LLM response

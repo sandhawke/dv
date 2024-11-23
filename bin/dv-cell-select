@@ -19,17 +19,17 @@ for cell in *; do
     if [ -f "$cell" ]; then
         continue
     fi
-    log_debug considering cell "$cell"
+    # log_debug considering cell "$cell"
 
     rejected=false
     for tag in "$@"; do
         if [ ! -f "$cell/.dv/tags/$tag" ]; then
-            log_debug ".. rejected as not having tag '$tag'"
+            # log_debug ".. rejected as not having tag '$tag'"
             rejected=true
         fi
     done
     if [ $rejected = 'false' ]; then
-        echo $cell
+        (cd "$cell"; pwd)
     fi
 done
 
