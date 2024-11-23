@@ -1,9 +1,20 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
+# Some day we need to pick one, or be clear about what the difference is
+export PROJECT_ROOT=$PWD
+export PACKAGE_ROOT=$PWD
+
+summary_file="_to_developer/test-results-summary.txt"
+
 if [ -z "${COMMAND:-}" ]; then
-    echo You must "export COMMAND=..." first
-    exit 1
+    [ -f .env ] && source .env
+    if [ -z "${COMMAND:-}" ]; then
+        log_error '$COMMAND needs to be set. See' "$summary_file"
+        mkdir -p _to_developer
+        echo 'Unable to run command-line tests because the environment variable $COMMAND is not set. It should generally be set by a line in the file ".env" like `export COMMAND="node $PROJECT_ROOT/src/cli.js"` or `export COMMAND="$PROJECT_ROOT/bin/foo"`. The exact value will depend on the language and layout of the package. Please set up that file and try again.' > $summary_file
+        exit 1
+    fi
 fi
 
 # Parse command line arguments
@@ -19,9 +30,6 @@ done
 
 # Create output directory if it doesn't exist
 mkdir -p _to_developer/test-results
-# I don't know which term to use. I settled on one then mis-remembered. :-(
-export PROJECT_ROOT=$PWD
-export PACKAGE_ROOT=$PWD
 
 # Initialize counters
 total_tests=0
@@ -94,7 +102,6 @@ echo "Passed: ${passed_tests}"
 echo "Failed: ${failed_tests}"
 
 # Save summary to file
-summary_file="_to_developer/test-results-summary.txt"
 {
     echo "Test Run Summary"
     echo "================"
