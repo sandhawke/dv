@@ -1,0 +1,26 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+mkdir -p _to_developer
+
+RECENT_COMMITS="${1:-1}"
+
+# Expose recent git commits, which is kind of like chat
+# conversation history.
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    RECENT_COMMITS=${RECENT_COMMITS:-0}
+    if [ "$RECENT_COMMITS" -ge 1 ]; then
+        echo Including $RECENT_COMMITS recent commits
+        mkdir -p _to_developer/recent-commits
+        pushd _to_developer/recent-commits
+        git log -n $RECENT_COMMITS > git-log
+        git log -n $RECENT_COMMITS --pretty=format:"%H" | while read commit; do
+            # Save each commit's diff to a file named after its hash
+            git show $commit > "${commit}.diff"
+            test -s "${commit}.diff" || rm "${commit}.diff"
+        done
+        popd
+    fi
+else
+    echo WARNING: not using git, so not providing change history to AI
+fi
