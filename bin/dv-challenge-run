@@ -13,6 +13,8 @@ cell=$(dv-cell-create "$challenge")
 cd "$challenge_dir/starting_files"
 rsync -a . "$cell"
 
+git add -A; git commit -m"starting files for challenge '$challenge'"
+
 cd "$cell"
 
 export DV_POINTS=100

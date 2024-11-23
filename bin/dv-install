@@ -18,6 +18,7 @@ if [ ! -d "$src" ]; then
     exit 1
 fi
 
+log_info Installing from "$src"
 tmp=$(mktemp -d)
 cd "$src"
 rsync -a --exclude='*~' . "$tmp"

@@ -87,7 +87,7 @@ while true; do
     if [ $total -gt 15 ]; then
         log_error "Too many loops ($total)"
         exit 1
-    }
+    fi
 
     if dv-cltest; then
         ((passing++)) || true
