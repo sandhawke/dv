@@ -1,0 +1,35 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+# :-( copied from dv-cell-create
+
+upper="$(dv-project-dir-upper)"
+cd "$upper"
+
+if [ -f .dv/settings/cell-root ] ; then
+    cell_root="$(<.dv/settings/cell-root)"
+    mkdir -p "$cell_root"
+    cd "$cell_root"
+    cell_root="$PWD"
+else
+    cell_root="$PWD"
+fi
+
+for cell in *; do
+    if [ -f "$cell" ]; then
+        continue
+    fi
+    log_debug considering cell "$cell"
+
+    rejected=false
+    for tag in "$@"; do
+        if [ ! -f "$cell/.dv/tags/$tag" ]; then
+            log_debug ".. rejected as not having tag '$tag'"
+            rejected=true
+        fi
+    done
+    if [ $rejected = 'false' ]; then
+        echo $cell
+    fi
+done
+

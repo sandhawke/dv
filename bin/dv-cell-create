@@ -68,3 +68,10 @@ dv-init
 echo "$upper" > .dv/upper
 
 pwd
+
+for tag in "$@"; do
+    # log_info adding tag "$tag"
+    mkdir -p .dv/tags
+    touch .dv/tags/"$tag"
+done
+log_info Added tags: $(cd .dv/tags; echo *)
