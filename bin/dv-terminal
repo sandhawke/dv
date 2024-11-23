@@ -1,0 +1,44 @@
+#!/bin/bash
+#source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+#!/bin/bash
+
+# Print usage if no command provided
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 \"command to run\"" >&2
+    exit 1
+fi
+
+# Get the full command from all arguments
+cmd="$*"
+
+# Helper function to properly escape a command for -e argument
+escape_cmd() {
+    printf "%q" "$1"
+}
+
+# Try to detect the desktop environment or terminal emulator
+if [ -n "$GNOME_DESKTOP_SESSION_ID" ] || [ "$XDG_CURRENT_DESKTOP" = "GNOME" ]; then
+    # GNOME Terminal
+    gnome-terminal -- bash -c "$cmd; exec bash"
+    exit $?
+elif [ "$XDG_CURRENT_DESKTOP" = "XFCE" ] || command -v xfce4-terminal >/dev/null 2>&1; then
+    # XFCE Terminal - use printf %q to properly escape the command
+    escaped_cmd=$(escape_cmd "$cmd")
+    xfce4-terminal -e "bash -c $escaped_cmd'; exec bash'" &
+    exit $?
+elif [ -n "$KONSOLE_VERSION" ] || command -v konsole >/dev/null 2>&1; then
+    # KDE's Konsole
+    konsole -e bash -c "$cmd; exec bash" &
+    exit $?
+elif command -v xterm >/dev/null 2>&1; then
+    # XTerm - widely available fallback
+    xterm -e bash -c "$cmd; exec bash" &
+    exit $?
+elif command -v osascript >/dev/null 2>&1; then
+    # macOS Terminal
+    osascript -e "tell application \"Terminal\" to do script \"$cmd\"" &
+    exit $?
+else
+    echo "Could not find a suitable terminal emulator" >&2
+    exit 1
+fi

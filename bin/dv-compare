@@ -78,7 +78,7 @@ done
 # Check if we're in a git repository when using git mode
 check_git_repo() {
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
-        echo "Error: Not a git repository" >&2
+        log_error "Error: Not a git repository"
         exit 1
     fi
 }
@@ -109,7 +109,7 @@ get_ref_name() {
 validate_git_ref() {
     local ref=$1
     if ! git rev-parse --verify "$ref^{commit}" >/dev/null 2>&1; then
-        echo "Error: Invalid git reference: $ref" >&2
+        log_error "Error: Invalid git reference: $ref"
         exit 1
     fi
 }
@@ -121,21 +121,21 @@ get_git_version() {
     local output=$3
     
     if ! git show "$ref:$path" > "$output" 2>/dev/null; then
-        echo "Error: Could not extract $path from $ref" >&2
+        log_error "Error: Could not extract $path from $ref"
         exit 1
     fi
 }
 
 # Create temp directory
 tempdir=$(mktemp -d)
-echo "Created temporary directory: $tempdir"
+log_info "Created temporary directory: $tempdir"
 
 if [ "$git_mode" = true ]; then
     check_git_repo
     
     # In git mode, first argument is the path, rest are refs
     if [ ${#files[@]} -lt 2 ]; then
-        echo "Error: Need path and at least one git reference for comparison" >&2
+        log_error "Error: Need path and at least one git reference for comparison"
         usage
     fi
     
@@ -157,9 +157,9 @@ if [ "$git_mode" = true ]; then
             # Add ref info to the filename if requested
             ref_name=$(get_ref_name "$ref")
             mv "$output_file" "$output_file-$ref_name"
-            echo "Extracted $target_path from $ref_name to $output_file-$ref_name"
+            log_info "Extracted $target_path from $ref_name to $output_file-$ref_name"
         else
-            echo "Extracted $target_path from $(get_ref_name "$ref") to $output_file"
+            log_info "Extracted $target_path from $(get_ref_name "$ref") to $output_file"
         fi
         
         counter=$((counter + 1))
@@ -167,7 +167,7 @@ if [ "$git_mode" = true ]; then
 else
     # Original file comparison logic
     if [ ${#files[@]} -lt 2 ]; then
-        echo "Error: Need at least 2 files to compare" >&2
+        log_error "Error: Need at least 2 files to compare"
         usage
     fi
     
@@ -188,13 +188,13 @@ if false; then
     fi
 fi
 
-echo "Done. Files are in $tempdir"
+log_info "Files are in $tempdir"
 
 output=$(mktemp)
-info Awaiting LLM response
+log_info Awaiting LLM response
 (cd $tempdir; packmime --ignore=.output prompt="$prompt" . | llpipe | tee $output)
 echo # llpipe often has no nl
 
-info Files saved in $tempdir
-info Output saved in $output
+log_info Files saved in $tempdir
+log_info Output saved in $output
 

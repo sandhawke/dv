@@ -12,6 +12,8 @@ Use console fenced code blocks with examples to help clarify the behavior of the
 
 Use formal languages (eg BNF) and technical jargon when they make the text more clear for an expert reader.
 
+Do not say anything about how the implementation works internally. We only want to specify observable behavior.
+
 Put your output in this file: docs/specification.md
 "
 

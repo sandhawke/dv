@@ -1,19 +1,11 @@
 #!/bin/bash
-# -*-mode: sh-mode -*-
-set -euo pipefail
-source $(dv-path lib/output.sh)
-trap 'echo bash error line ${LINENO} "${BASH_COMMAND}" returned "$?"' ERR
-
-if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-    echo "ERROR: missing ANTHROPIC_API_KEY" >&2
-    exit 1
-fi
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 template="node20"
 
 usage() {
     cat <<EOF
-Usage: $0 [options brief-specification-string
+Usage: $0 [options brief-specification-string]
 
 Options:
   --help        Display this help message and exit.
@@ -45,18 +37,14 @@ if [ ${#words[@]} -eq 0 ]; then
     usage
 fi
 
-H="./_runs"
-mkdir -p "$H"
+cd /tmp
+H=$(dv-path _runs)
+pushd "$(mktemp --tmpdir="$H" -d "run-XXX")"
+dv-init
 
-pushd "$(mktemp --tmpdir="$H" -d "run-XXXXXX")"
-dv-init "$template"
 mkdir -p docs
-echo "$words" > docs/spec.md
+echo "$words" > docs/user-request.md
 git add -A
 git commit -m 'configured for dv-create'
-info "Looping in $(pwd)"
-(xfce4-terminal || echo "no terminal") &
-dv-loop || echo "dv-loop exited with an error"
-pwd
 
-echo done
+dv-terminal "echo -e 'Consider:\n\ngit log --oneline\ndv-edit-spec-create\ndv-sequence-basic'"

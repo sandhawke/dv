@@ -1,0 +1,71 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+dv-file-exists docs/user-request.md
+
+# do we want the spec? eh, not necessarily.
+
+export DV_PROMPT="
+We need a highly detailed test suite for command-line use of this program. Please put each test in a file named like cltest/*.sh, to be run in bash. Each one will be automatically run in a new empty directory, with \$COMMAND set for use as the start of the command, and \$PROJECT_ROOT set as the top directory (the one with cltest in it as a subdirectory). Do not set or check these environment variables.
+
+If you need any common code or files, you can put them in files named like cltest/_*
+
+The tests should look fairly similar to what a user might type in using the program, except for using \$COMMAND instead of the name of the program. They should not clean up any files they create. Instead, they should leave them in place, in the working directory, to help with diagnosis.
+
+The script should signal success by exit code 0, failure by exit code 1. Let the shell propagate these codes automatically, if that's shorter or simpler.
+
+Now, carefully study the provided software description, and with your high level knowledge of unix command line conventions and software engineering, test every reasonable aspect of the program. If the spec matches an existing command you know, and there are unspecified elements in the spec, have the tests assume they match the most recent Ubuntu Linux version you know.
+
+Here are some general ideas of what to test. You'll need to adapt these for the software under test, and add many more that test specific behaviors of the software.
+
+## Basic Operations
+- cltest/cli_launches_successfully.sh
+- cltest/displays_help_with_h_flag.sh
+- cltest/displays_version_with_v_flag.sh
+- cltest/exits_with_zero_on_success.sh
+- cltest/exits_with_nonzero_on_error.sh
+
+## Input Handling
+- cltest/accepts_valid_input_file.sh
+- cltest/rejects_missing_input_file.sh
+- cltest/handles_empty_input_file.sh
+- cltest/validates_input_format.sh
+- cltest/processes_unicode_input.sh
+
+## Output Verification
+- cltest/creates_expected_output_file.sh
+- cltest/output_matches_expected_format.sh
+- cltest/writes_logs_to_specified_location.sh
+- cltest/respects_output_path_flag.sh
+- cltest/overwrites_existing_output_when_forced.sh
+
+## Option Parsing
+- cltest/parses_short_options.sh
+- cltest/parses_long_options.sh
+- cltest/handles_combined_short_options.sh
+- cltest/respects_option_precedence.sh
+- cltest/validates_option_values.sh
+
+## Error Conditions
+- cltest/reports_invalid_options.sh
+- cltest/handles_missing_required_args.sh
+- cltest/provides_meaningful_error_messages.sh
+- cltest/fails_gracefully_on_io_error.sh
+- cltest/recovers_from_partial_failures.sh
+
+## Interactive Features
+- cltest/prompts_for_missing_required_input.sh
+- cltest/handles_user_confirmation.sh
+- cltest/supports_quiet_mode.sh
+- cltest/respects_no_prompt_flag.sh
+- cltest/allows_input_cancellation.sh
+
+Again, please add many new tests to this to match the specified and implied behavior, and skip any of these that do not make sense.
+
+Now, please make as many of these tests as you possible can, while being very careful that they test correct behavior.
+"
+
+dv-edit
+
+dv-dir-exists cltest
+
