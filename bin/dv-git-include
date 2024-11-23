@@ -10,11 +10,15 @@ RECENT_COMMITS="${1:-1}"
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     RECENT_COMMITS=${RECENT_COMMITS:-0}
     if [ "$RECENT_COMMITS" -ge 1 ]; then
-        echo Including $RECENT_COMMITS recent commits
+        log_info Including $RECENT_COMMITS recent commits
         mkdir -p _to_developer/recent-commits
         pushd _to_developer/recent-commits
         git log -n $RECENT_COMMITS > git-log
-        git log -n $RECENT_COMMITS --pretty=format:"%H" | while read commit; do
+        log_info wrote $PWD/git-log
+        commits=$(git log -n $RECENT_COMMITS --pretty=format:"%H")
+        # log_info commits: $commits
+        for commit in $commits; do
+            log_info including commit $commit
             # Save each commit's diff to a file named after its hash
             git show $commit > "${commit}.diff"
             test -s "${commit}.diff" || rm "${commit}.diff"
