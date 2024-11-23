@@ -30,6 +30,7 @@ mkdir notes || true
 git add -A
 git commit --quiet -m'dv-init'
 
+if false; then
 log_success "Setup complete. Consider:
 
 $EDITOR docs/user-request.md
@@ -37,3 +38,4 @@ dv-edit-spec-create
 dv-edit -p'whatever you want it to do'
 
 "
+fi

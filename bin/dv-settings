@@ -1,6 +1,9 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
+# need to be recursive upward, and have a -q mode.  For now we're
+# checking file manually in dv-cell-create.
+
 # Define settings directories
 PROJECT_SETTINGS_DIR="$(dv-project-dir)/.dv/settings"
 log_debug PROJECT_SETTINGS_DIR="$PROJECT_SETTINGS_DIR"
