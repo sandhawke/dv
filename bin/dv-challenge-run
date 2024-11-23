@@ -1,0 +1,39 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+challenge=$1
+challenge_dir=$(dv-path challenges/$challenge)
+if [ ! -d $challenge_dir ]; then
+    log_error Not found $challenge_dir
+    exit 1
+fi
+
+cell=$(dv-cell-create "$challenge")
+
+cd "$challenge_dir/starting_files"
+rsync -a . "$cell"
+
+cd "$cell"
+
+export DV_POINTS=100
+export DV_POINTS_FILE="$cell/.dv/points.txt"
+
+log_info Using $DV_POINTS_FILE
+
+run="$challenge_dir/run.sh"
+if [ -f "$run" ]; then
+    bash "$run" || log_warning "$run non-zero exit"
+else
+    # make this an argument ? something like the.
+    dv-sequence-basic || log_warning "dv-sequence-basic non-zero exit"
+fi
+
+if [ -f $DV_POINTS_FILE ]; then
+    log_success "$(< "$DV_POINTS_FILE")"
+fi
+
+# record more of what happened in the cell for later examination
+
+
+
+

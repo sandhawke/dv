@@ -4,7 +4,6 @@ source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 dv-file-exists docs/user-request.md
 dv-dir-exists cltest
 
-# someone needs to set PROGRAM - dv-cltest will fail without it
 
 basic="We need a highly detailed test suite for command-line use of this program.
 
@@ -74,6 +73,7 @@ Here are some general ideas of what to test. You'll need to adapt these for the 
 
 "
 
+# there's slightly better logic in dv-edit-code-debug
 
 passing=0
 failing=0
@@ -89,9 +89,10 @@ while true; do
         fi
         export DV_PROMPT="$improve"
     else
+        passing=0
         ((failing++)) || true
         log_info failing $failing times
-        if [ $failing -gt 5 ]; then
+        if [ $failing -gt 10 ]; then
             echo 'Too many failures'
             exit 1
         fi

@@ -1,70 +1,58 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
-usage() {
-    echo "Usage: $(basename $0) [options]"
-    echo
-    echo "Options:"
-    echo "  --loop=N   Number of debug loops to run (default: 1)"
-    echo "  --help     Display this help message"
-    exit 1
-}
-
-# Parse command line options
-loops=1
-while [ $# -gt 0 ]; do
-    case "$1" in
-        --loop=*)
-            loops="${1#*=}"
-            if ! [[ "$loops" =~ ^[0-9]+$ ]]; then
-                log_error "Loop count must be a positive integer"
-                exit 1
-            fi
-            if [ "$loops" -lt 1 ]; then
-                log_error "Loop count must be at least 1"
-                exit 1
-            fi
-            ;;
-        --help)
-            usage
-            ;;
-        *)
-            log_error "Unknown option: $1"
-            usage
-            ;;
-    esac
-    shift
-done
-
-# or someone else?
+# Who should do this?
 rm -rf _to_developer
 
-# could branch on this
-dv-test || log_warning Some tests failed
+basic=""
 
-export DV_PROMPT="
-We need you to implement this specification carefully, as a professional software engineer dedicated to creating bug-free easy-to-understand well-organized code.
+fix="$basic
 
-We also need unit tests, and when appropriate, acceptance tests.
+Attached, please see details on how the current code is failing one or more tests in one of the test suites.
 
-Please examine the attached material and make any necessary improvements so that we have top-quality code.
+The cltest suite is part of the program specification and must not be changed. For other tests, it is possible the error is in the test, not the program. When in doubt, add variant tests.
+
+Please get the software working properly. You are encouraged to refactor, simplify, extend, or otherwise improve the software in any way that helps it work better.
 "
 
-n=1
-while [ $n -le $loops ]; do
-    dv-edit
+improve="$basic
 
-    if dv-test; then
-        log_success exiting debug loop with tests passing
-        exit 0
+The current software passes all available test.
+
+Please confirm that all specified features are tested, and clean up the code in any way that seems important.
+"
+
+recent="$basic
+
+We still have one or more tests failing, after many tries. Look carefully at each of the recent attempts to fix it. What did they get wrong? What is a better way to fix this?
+"
+
+passing=0 # we want to pass a couple times, for improvement cycle
+total=0
+
+while true; do
+    ((total++)) || true
+    if [ $total -gt 15 ]; then
+        log_error "Too many debug loops ($total)"
+        exit 1
     fi
-
-    n=$((n + 1))
+    
+    if dv-test; then
+        ((passing++)) || true
+        log_info passing $passing times
+        if [ $passing -gt 1 ]; then
+            echo improved and passing!
+            exit 0
+        fi
+        export DV_PROMPT="$improve"
+    else
+        if [ "$total" -gt 9 ]; then
+            dv-git-include 5
+            export DV_PROMPT="$recent"
+        else 
+            export DV_PROMPT="$fix"
+        fi
+    fi
+    
+    dv-edit
 done
-
-if [ $loops -eq 1 ]; then
-    log_warning "Single debug iteration completed without success"
-else
-    log_warning "Reached maximum number of loops ($loops) without success"
-fi
-exit 1

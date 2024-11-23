@@ -1,124 +1,15 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
-# Parse command line arguments
-KEEP_RESULTS=0
-for arg in "$@"; do
-    case $arg in
-        --keep)
-            KEEP_RESULTS=1
-            shift # Remove --keep from processing
-            ;;
-    esac
-done
+out=_to_developer/test-all.out
+rm -rf "$out"
+mkdir -p "$out"
 
-# not quite sure this is the right place for this, but I keep missing this
-# step before running tests.
-if [ -f package.json ]; then
-    npm install
-    # that might change some files and make git dirty  :-(
-    # for now .gitignore package-lock.json
-fi
-
-# Create output directory if it doesn't exist
-mkdir -p _to_developer/test-results
-# I don't know which term to use. I settled on one then mis-remembered. :-(
-export PROJECT_ROOT=$PWD
-export PACKAGE_ROOT=$PWD
-
-# Initialize counters
-total_tests=0
-passed_tests=0
-failed_tests=0
-
-# Array to store passed test directories for cleanup
-declare -a passed_test_dirs
-
-# Function to run a single test and record results
-run_test() {
-    local test_file="$1"
-    local test_name=$(basename "$test_file" .sh)
-    local result_dir="_to_developer/test-results/${test_name}"
-    local working_dir="${result_dir}/working_directory"
-    local absolute_test_path=$(readlink -f "$test_file")
-    local value=''
-    
-    # Create test result directory and working directory
-    mkdir -p "$result_dir"
-    mkdir -p "$working_dir"
-    export WORKING_DIR="$working_dir"
-    
-    echo "Running test: ${test_name}"
-    
-    # Run the test in working directory and capture both stdout and stderr
-    if (cd "$working_dir" && bash "$absolute_test_path") > "$result_dir/stdout" 2> "$result_dir/stderr"; then
-        value=$?
-        echo exit value PASS $value 
-        echo "PASS" > "$result_dir/status"
-        ((passed_tests++)) || true # workaround
-        echo "✓ ${test_name} passed"
-        passed_test_dirs+=("$result_dir")
-    else
-        value=$?
-        echo exit value FAIL $value
-        echo "FAIL, exit value $value" > "$result_dir/status"
-        ((failed_tests++)) || true # workaround bash being annoying
-        echo "✗ ${test_name} failed, see $result_dir"
-    fi
-    ((total_tests++)) || true # workaround bash being annoying
-}
-
-# Main execution
-echo "Starting test run..."
-echo "==================="
-
-# Find and run all matching test files
-for test_file in test/[0-9a-zA-Z]*.sh; do
-    if [ -f "$test_file" ]; then
-        run_test "$test_file"
-    fi
-done
-
-# Generate summary
-echo -e "\nTest Run Summary"
-echo "================"
-echo "Total tests: ${total_tests}"
-echo "Passed: ${passed_tests}"
-echo "Failed: ${failed_tests}"
-
-# Save summary to file
-summary_file="_to_developer/test-results-summary.txt"
-{
-    echo "Test Run Summary"
-    echo "================"
-    echo "Total tests: ${total_tests}"
-    echo "Passed: ${passed_tests}"
-    echo "Failed: ${failed_tests}"
-    echo
-    echo "Individual Test Results:"
-    for test_file in test/[0-9a-zA-Z]*.sh; do
-        if [ -f "$test_file" ]; then
-            test_name=$(basename "$test_file" .sh)
-            status=$(cat "_to_developer/test-results/${test_name}/status")
-            echo "${test_name}: ${status}"
-        fi
-    done
-} > "$summary_file"
-
-# Clean up passed test directories unless --keep flag is provided
-if [ $KEEP_RESULTS -eq 0 ]; then
-    echo -e "\nCleaning up passed test directories..."
-    for dir in "${passed_test_dirs[@]}"; do
-        echo "Removing $dir"
-        rm -rf "$dir"
-    done
-fi
-
-if [ $failed_tests -gt 0 ]; then
-    log_warning "dv-test exiting with $failed_tests failed tests, leaving files"
-    find _to_developer/test-results -type f
-    exit 1
+if [ -f test-all.sh ]; then
+    bash test-all.sh > $out/log.txt 2>&1
 else
-    log_success "All $passed_tests test passed!"
-    exit 0
+    echo "test-all.sh is missing. It is strongly recommended to create it as the portable way to have your tests run." > $out/log.txt
 fi
+
+# Our own command-line test system
+dv-cltest
