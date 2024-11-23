@@ -1,0 +1,1 @@
+Actually, after reviewing the code, I don't see any issue with the handling of RECENT_COMMITS=1. The script will include the diff when RECENT_COMMITS is 1 or greater because of the condition `if [ "$RECENT_COMMITS" -ge 1 ]`. The logic appears to be correct as is.
