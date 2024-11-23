@@ -25,7 +25,7 @@ dv-settings cell-root=.dv/cells  # for cells to be hidden away
     cell_root="$PWD"
 fi
 
-log_debug cell root: "$cell_root"
+# log_debug cell root: "$cell_root"
 
 # log_info "Creating new cell directory with base name: $slug"
 
@@ -74,4 +74,6 @@ for tag in "$@"; do
     mkdir -p .dv/tags
     touch .dv/tags/"$tag"
 done
-log_info Added tags: $(cd .dv/tags; echo *)
+if [ -d .dv/tags ]; then
+    log_info Added tags: $(cd .dv/tags; echo *)
+fi
