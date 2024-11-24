@@ -6,7 +6,9 @@ rm -rf "$out"
 mkdir -p "$out"
 
 if [ -f test-all.sh ]; then
-    bash test-all.sh > $out/log.txt 2>&1
+    if ! timeout 15 bash test-all.sh > $out/log.txt 2>&1; then
+        echo timeout 15 bash test-all.sh exit code $? >> $out/log.txt
+    fi
 else
     echo "test-all.sh is missing. It is strongly recommended to create it as the portable way to have your tests run." > $out/log.txt
 fi

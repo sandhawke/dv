@@ -27,20 +27,23 @@ dv-install node20-a
 
 # export DV_POINTS=100
 # export DV_POINTS_FILE="$cell/.dv/points.txt"
-
-log_info Using $DV_POINTS_FILE
+# log_info Using $DV_POINTS_FILE
 
 run="$challenge_dir/run.sh"
 if [ -f "$run" ]; then
     bash "$run" || log_warning "$run non-zero exit"
 else
     # make this an argument ? something like the.
-    dv-sequence-basic || log_warning "dv-sequence-basic non-zero exit"
+    if dv-sequence-basic; then
+        date > .dv/challenge-pass
+    else
+        date > .dv/challenge-fail
+    fi
 fi
 
-if [ -f $DV_POINTS_FILE ]; then
-    log_success "$(< "$DV_POINTS_FILE")"
-fi
+#if [ -f $DV_POINTS_FILE ]; then
+#    log_success "$(< "$DV_POINTS_FILE")"
+#fi
 
 # record more of what happened in the cell for later examination
 
