@@ -39,3 +39,5 @@ dv-edit -p'whatever you want it to do'
 
 "
 fi
+
+log_success dv-init "'$PWD'"

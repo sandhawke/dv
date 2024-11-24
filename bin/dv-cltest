@@ -56,7 +56,7 @@ run_test() {
     echo "Running test: ${test_name}"
 
     # Run the test in working directory and capture both stdout and stderr
-    if (cd "$working_dir" && bash "$absolute_test_path") > "$result_dir/stdout" 2> "$result_dir/stderr"; then
+    if (cd "$working_dir" && timeout 15s bash "$absolute_test_path") > "$result_dir/stdout" 2> "$result_dir/stderr"; then
         value=$?
         echo exit value PASS $value
         echo "PASS" > "$result_dir/status"
@@ -118,6 +118,9 @@ echo "Failed: ${failed_tests}"
         fi
     done
 } > "$summary_file"
+mkdir -p .dv/cltest-summaries
+cp -a "$summary_file" .dv/cltest-summaries/$(uuidgen -r | cut -c 29-)
+# maybe into edits/latest ?
 
 # Clean up passed test directories unless --keep flag is provided
 if [ $KEEP_RESULTS -eq 0 ]; then
@@ -130,7 +133,7 @@ fi
 
 if [ $failed_tests -gt 0 ]; then
     log_warning "dv-test exiting with $failed_tests failed tests, leaving files"
-    find _to_developer/cltest-results -type f
+    find _to_developer/cltest-results -type f || log_error error in find
     exit 1
 else
     log_success "All $passed_tests cltests passed!"

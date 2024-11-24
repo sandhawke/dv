@@ -8,10 +8,16 @@ if [ ! -d $challenge_dir ]; then
     exit 1
 fi
 
-cell=$(dv-cell-create "$challenge")
+cell=$(dv-cell-create "$challenge" "$@")
 
 cd "$challenge_dir/starting_files"
-rsync -a . "$cell"
+rsync -avv . "$cell"
+
+# we could just --ignore these, but they seem more a cause for concern
+if [ -d "$cell/_to_developer" ]; then
+    log_error $PWD seems to have a _to_developer
+    exit 1
+fi
 
 cd "$cell"
 git add -A; git commit -m"starting files for challenge '$challenge'"
@@ -19,8 +25,8 @@ git add -A; git commit -m"starting files for challenge '$challenge'"
 ## Pick a system to install?  That's a indep. var, right?
 dv-install node20-a
 
-export DV_POINTS=100
-export DV_POINTS_FILE="$cell/.dv/points.txt"
+# export DV_POINTS=100
+# export DV_POINTS_FILE="$cell/.dv/points.txt"
 
 log_info Using $DV_POINTS_FILE
 

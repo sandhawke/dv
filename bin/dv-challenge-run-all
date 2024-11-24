@@ -1,0 +1,8 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+tag="$1"
+
+for ch in $(ls $(dv-path challenges)); do
+    dv-challenge-run $ch $tag &
+done

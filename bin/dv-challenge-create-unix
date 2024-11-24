@@ -21,6 +21,10 @@ It must have all the POSIX behaviors and any added features that have become com
 It should still be called "$challenge" so we can use it just the same.
 _END
 
+if [ -n "${2:-}" ]; then
+    (echo ; echo "$2") >> docs/user-request.md
+fi
+
 git add -A; git commit -m'user request'
 
 dv-edit-cltest-create
@@ -33,6 +37,6 @@ sf="$challenge_dir/starting_files"
 mkdir -p "$sf"
 cp -a cltest docs "$sf"
 
-echo 'export COMMAND="'"$challenge"'"' > "$sf/.env"
+echo "export COMMAND=\"\$PROJECT_ROOT/bin/$challenge\"" > "$sf/.env"
 
 log_success "$sf set up"

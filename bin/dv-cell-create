@@ -61,8 +61,6 @@ fi
 
 cd "$new_dir"
 
-log_info "Running dv-init in $new_dir"
-
 dv-init
 
 echo "$upper" > .dv/upper

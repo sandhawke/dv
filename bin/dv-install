@@ -19,20 +19,10 @@ if [ ! -d "$src" ]; then
 fi
 
 log_info Installing from "$src"
-tmp=$(mktemp -d)
+log_debug doing rsync to "$dest"
+
 cd "$src"
-rsync -a --exclude='*~' . "$tmp"
-
-cd "$tmp"
-if [ -f CUSTOMIZE.sh ]; then
-    log_info running CUSTOMIZE.sh
-   ./CUSTOMIZE.sh
-   rm ./CUSTOMIZE.sh
-fi
-
-log_debug doing rsync
-
-rsync -a --exclude='*~' --backup --backup-dir="$BACKUP_DIR" . "$dest"
+rsync -avv --exclude='*~' --backup --backup-dir="$BACKUP_DIR" . "$dest"
 
 log_debug checking for backups made
 
@@ -44,6 +34,12 @@ if [ -d "$BACKUP_DIR" ]; then
 fi
 
 cd "$dest"
+
+if [ -f CUSTOMIZE.sh ]; then
+    log_info running CUSTOMIZE.sh
+   ./CUSTOMIZE.sh
+   rm ./CUSTOMIZE.sh
+fi
 
 if dv-settings --check auto-commit=true; then
     git add -A
