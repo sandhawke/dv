@@ -13,9 +13,11 @@ cell=$(dv-cell-create "$challenge")
 cd "$challenge_dir/starting_files"
 rsync -a . "$cell"
 
+cd "$cell"
 git add -A; git commit -m"starting files for challenge '$challenge'"
 
-cd "$cell"
+## Pick a system to install?  That's a indep. var, right?
+dv-install node20-a
 
 export DV_POINTS=100
 export DV_POINTS_FILE="$cell/.dv/points.txt"
