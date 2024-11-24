@@ -14,7 +14,8 @@ export DV_COMMAND
 commit_message_file=_from_developer/commit_message
 
 # ANSI color codes - updated for better visibility on dark backgrounds
-RED='\033[1;101m'    
+RED='\033[1;101m'
+MEDRED='\033[0;31m'
 GREEN='\033[1;92m'   
 YELLOW='\033[1;93m'  
 BLUE='\033[1;96m'     # really cyan
@@ -78,51 +79,4 @@ info() {
 success() {
     log_warning "The 'success' function is deprecated. Please use 'log_success' instead."
     log_success "$@"
-}
-
-new_name() {
-    local dir="${1:-$PWD}"      # Default to current directory if not specified
-    local slug="${2:-}"        # Optional slug prefix
-    local pattern
-    local highest=0
-    
-    mkdir -p "$dir"
-    
-    # Set up the pattern based on whether we have a slug
-    if [ -n "$slug" ]; then
-        pattern="^${slug}-([0-9]+)$"
-    else
-        pattern="^([0-9]+)$"
-    fi
-    
-    # Find the highest number
-    while IFS= read -r entry; do
-        if [[ -e "$dir/$entry" ]]; then  # Check if file/dir exists
-            if [ -n "$slug" ]; then
-                if [[ "$entry" =~ $pattern ]]; then
-                    num="${BASH_REMATCH[1]}"
-                    if [ "$num" -gt "$highest" ]; then
-                        highest=$num
-                    fi
-                fi
-            else
-                if [[ "$entry" =~ $pattern ]]; then
-                    num="${BASH_REMATCH[1]}"
-                    if [ "$num" -gt "$highest" ]; then
-                        highest=$num
-                    fi
-                fi
-            fi
-        fi
-    done < <(ls -A "$dir")
-    
-    # Generate the next number
-    next=$((highest + 1))
-    
-    # Create the new name
-    if [ -n "$slug" ]; then
-        echo "$dir/$slug-$next"
-    else
-        echo "$dir/$next"
-    fi
 }

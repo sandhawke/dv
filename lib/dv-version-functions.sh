@@ -11,6 +11,7 @@ log() {
 }
 
 # Function to find highest sequential number in a directory
+## DEPRECATED - use new_name
 find_highest_seq() {
     local dir="$1"
     if [ ! -d "$dir" ]; then

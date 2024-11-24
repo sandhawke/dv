@@ -25,7 +25,7 @@ dv-settings cell-root=.dv/cells  # for cells to be hidden away
     cell_root="$PWD"
 fi
 
-new_dir="$(new_name "$cell_root" "$slug")"
+new_dir="$(dv-path-create "$cell_root" "$slug")"
 
 # log_info "Creating new directory: $new_dir"
 
