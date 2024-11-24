@@ -25,28 +25,7 @@ dv-settings cell-root=.dv/cells  # for cells to be hidden away
     cell_root="$PWD"
 fi
 
-# log_debug cell root: "$cell_root"
-
-# log_info "Creating new cell directory with base name: $slug"
-
-# Find the highest numbered suffix currently in use
-highest=0
-for dir in "$slug"-*; do
-    if [ -d "$dir" ]; then
-        # log_info "Found existing directory: $dir"
-        suffix="${dir#$slug-}"
-        if [[ "$suffix" =~ ^[0-9]+$ ]]; then
-            if [ "$suffix" -gt "$highest" ]; then
-                highest=$suffix
-                # log_info "New highest suffix found: $highest"
-            fi
-        fi
-    fi
-done
-
-# Increment the highest number
-next=$((highest + 1))
-new_dir="$slug-$next"
+new_dir="$(new_name "$cell_root" "$slug")"
 
 # log_info "Creating new directory: $new_dir"
 
