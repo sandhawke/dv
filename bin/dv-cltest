@@ -26,14 +26,29 @@ fi
 
 # Parse command line arguments
 KEEP_RESULTS=0
-for arg in "$@"; do
-    case $arg in
+declare -a TEST_FILES
+
+# Process arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
         --keep)
             KEEP_RESULTS=1
-            shift # Remove --keep from processing
+            shift
+            ;;
+        *)
+            TEST_FILES+=("$1")
+            shift
             ;;
     esac
 done
+
+# If no test files specified, use default glob pattern
+if [ ${#TEST_FILES[@]} -eq 0 ]; then
+    # Collect all matching test files from the default glob pattern
+    while IFS= read -r -d '' file; do
+        TEST_FILES+=("$file")
+    done < <(find ./{cl,cli-,}test -maxdepth 1 -name '[a-z]*.sh' -type f -print0 2>/dev/null)
+fi
 
 # Create output directory if it doesn't exist
 mkdir -p _to_developer/cltest-results
@@ -60,22 +75,19 @@ run_test() {
     mkdir -p "$working_dir"
     export WORKING_DIR="$working_dir"
 
-    # echo "Running test: ${test_name}"
-
     # Run the test in working directory and capture both stdout and stderr
     if (cd "$working_dir" && timeout 15s bash "$absolute_test_path") > "$result_dir/stdout" 2> "$result_dir/stderr"; then
         value=$?
-        # echo exit value PASS $value
         echo "PASS" > "$result_dir/status"
         touch "$log/pass.$test_name"
-        ((passed_tests++)) || true # workaround
+        ((passed_tests++)) || true
         echo -e "${GREEN}✓ ${test_name} passed${NC}"
         passed_test_dirs+=("$result_dir")
 
         # If DV_POINTS is set, calculate and record points for passed test
         if [ -n "${DV_POINTS:-}" ] && [ -n "${DV_POINTS_FILE:-}" ]; then
             # Count total number of test files
-            local total_test_count=$(find {cl,cli-,}test -maxdepth 1 -name '[0-9a-zA-Z]*.sh' -type f | wc -l)
+            local total_test_count=${#TEST_FILES[@]}
             # Calculate points per test
             local points_per_test=$(awk "BEGIN {printf \"%.2f\", ${DV_POINTS}/${total_test_count}}")
             # Append points and test name to points file
@@ -83,30 +95,32 @@ run_test() {
         fi
     else
         value=$?
-        # echo exit value FAIL $value
         touch "$log/fail.$test_name"
         echo "FAIL, exit value $value" > "$result_dir/status"
-        ((failed_tests++)) || true # workaround bash being annoying
+        ((failed_tests++)) || true
         echo -e "${MEDRED}✗ ${test_name} failed, see $result_dir${NC}"
     fi
-    ((total_tests++)) || true # workaround bash being annoying
+    ((total_tests++)) || true
 }
 
 # Main execution
-# echo "Starting test run..."
-# echo "==================="
-
-# Find and run all matching test files
-for test_file in {cl,cli-,}test/[0-9a-zA-Z]*.sh; do
+for test_file in "${TEST_FILES[@]}"; do
     if [ -f "$test_file" ]; then
         run_test "$test_file"
+    else
+        echo -e "${MEDRED}Warning: Test file '$test_file' not found${NC}"
     fi
 done
 
 # Generate summary
-let ppct=100*$passed_tests/$total_tests
-let fpct=100*$failed_tests/$total_tests
-echo -e "\nTest Run Summary: Passed: ${GREEN}${passed_tests} (${ppct}%)${NC} Failed: ${MEDRED}${failed_tests} (${fpct}%)${NC}"
+if [ $total_tests -gt 0 ]; then
+    let ppct=100*$passed_tests/$total_tests
+    let fpct=100*$failed_tests/$total_tests
+    echo -e "\nTest Run Summary: Passed: ${GREEN}${passed_tests} (${ppct}%)${NC} Failed: ${MEDRED}${failed_tests} (${fpct}%)${NC}"
+else
+    echo -e "${MEDRED}No tests were run${NC}"
+    exit 1
+fi
 
 # Save summary to file
 {
@@ -117,7 +131,7 @@ echo -e "\nTest Run Summary: Passed: ${GREEN}${passed_tests} (${ppct}%)${NC} Fai
     echo "Failed: ${failed_tests}"
     echo
     echo "Individual Test Results:"
-    for test_file in cltest/[0-9a-zA-Z]*.sh; do
+    for test_file in "${TEST_FILES[@]}"; do
         if [ -f "$test_file" ]; then
             test_name=$(basename "$test_file" .sh)
             status=$(cat "_to_developer/cltest-results/${test_name}/status")
@@ -132,20 +146,16 @@ fi)
 
 # Clean up passed test directories unless --keep flag is provided
 if [ $KEEP_RESULTS -eq 0 ]; then
-    # echo -e "\nCleaning up passed test directories..."
     for dir in "${passed_test_dirs[@]}"; do
-        # echo "Removing $dir"
         rm -rf "$dir"
     done
 fi
 
 if [ $failed_tests -gt 0 ]; then
     log_warning "dv-cltest keeping details in _to_developer/cltest-results"
-    # find _to_developer/cltest-results -type f || log_error error in find
     log_info "Saving stats in '$log'"
     exit 1
 else
     log_success "All $passed_tests cltests passed!"
     exit 0
 fi
-
