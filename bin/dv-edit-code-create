@@ -7,6 +7,7 @@ Now, let's implement this specification carefully, as a professional software en
 Also please implement unit tests for any module/file, and integrations tests as necessary. It is especially useful to have tests for any elements of the system where you have some uncertainty as to how it will behave.
 "
 
+log_info dv-edit-code-create
 dv-edit
 
 # just for the user:

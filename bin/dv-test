@@ -1,34 +1,27 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
+# Make sure the directory is clean now, so we can clean up
+# anything which tests leave behind in the main project directory
+dv-git-assert-clean
+
+if [ ! -f test-all.sh ]; then
+    dv-install cltest
+fi
+
 out=_to_developer/test-all.out
 rm -rf "$out"
 mkdir -p "$out"
-pass=1
-
-if [ -f test-all.sh ]; then
-    if ! timeout 15 bash test-all.sh > $out/log.txt 2>&1; then
-        echo timeout 15 bash test-all.sh exit code $? >> $out/log.txt
-        pass=0
-    fi
-else
-    echo "test-all.sh is missing. It is strongly recommended to create it as the portable way to have your tests run." > $out/log.txt
+    
+if ! timeout 60 bash test-all.sh > $out/log.txt 2>&1; then
+    echo "### [dv-test] test-all.sh FAILED exit status $?" >> $out/log.txt
+    status=1
+else 
+    echo "test-all.sh exit status 0 -- ALL TESTS PASSED!" >> $out/log.txt
+    status=0
 fi
 
-# Our own command-line test system - maybe we should tell the LLM
-# more about how this works in general?  Right now that prompt is
-# in dv-edit-cltest-*
+# Clean up anything which got added
+git clean -qfd
 
-if dv-cltest; then
-    if [ $pass = 1 ]; then
-        echo 'cltest and test-all passed'
-        exit 0
-    else
-        echo 'cltest passed, test-all failed'
-        exit 1
-    fi
-else
-    echo cltest failed
-    exit 1
-fi
-
+exit $status

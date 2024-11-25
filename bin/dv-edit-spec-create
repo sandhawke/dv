@@ -17,6 +17,7 @@ Do not say anything about how the implementation works internally. We only want 
 Put your output in this file: docs/specification.md
 "
 
+log_info dv-edit-spec-create
 dv-edit docs/user-request.md
 
 dv-file-exists docs/specification.md

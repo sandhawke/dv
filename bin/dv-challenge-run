@@ -23,6 +23,7 @@ cd "$cell"
 git add -A; git commit -m"starting files for challenge '$challenge'"
 
 ## Pick a system to install?  That's a indep. var, right?
+dv-install cltest
 dv-install node20-a
 
 # export DV_POINTS=100
