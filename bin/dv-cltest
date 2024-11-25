@@ -24,6 +24,14 @@ if [ -z "${COMMAND:-}" ]; then
     fi
 fi
 
+function say () {
+    if [ -n "${DV_CLTEST_OUT:-}" ]; then
+        echo "$@" >> "$DV_CLTEST_OUT"
+    else
+        echo "$@"
+    fi
+}
+
 # Parse command line arguments
 KEEP_RESULTS=0
 declare -a TEST_FILES=()
@@ -81,14 +89,14 @@ run_test() {
         echo "PASS" > "$result_dir/status"
         touch "$log/pass.$test_name"
         ((passed_tests++)) || true
-        echo -e "${GREEN}✓ ${test_name} passed${NC}"
+        say -e "${GREEN}✓ ${test_name} passed${NC}"
         passed_test_dirs+=("$result_dir")
     else
         value=$?
         touch "$log/fail.$test_name"
         echo "FAIL, exit value $value" > "$result_dir/status"
         ((failed_tests++)) || true
-        echo -e "${MEDRED}✗ ${test_name} failed, see $result_dir${NC}"
+        say -e "${MEDRED}✗ ${test_name} failed, see $result_dir${NC}"
     fi
     ((total_tests++)) || true
 }
@@ -98,7 +106,7 @@ for test_file in "${TEST_FILES[@]}"; do
     if [ -f "$test_file" ]; then
         run_test "$test_file"
     else
-        echo -e "${MEDRED}Warning: Test file '$test_file' not found${NC}"
+        say -e "${MEDRED}Warning: Test file '$test_file' not found${NC}"
     fi
 done
 
@@ -106,9 +114,9 @@ done
 if [ $total_tests -gt 0 ]; then
     let ppct=100*$passed_tests/$total_tests || true
     let fpct=100*$failed_tests/$total_tests || true
-    echo -e "\nTest Run Summary: Passed: ${GREEN}${passed_tests} (${ppct}%)${NC} Failed: ${MEDRED}${failed_tests} (${fpct}%)${NC}"
+    say -e "\nTest Run Summary: Passed: ${GREEN}${passed_tests} (${ppct}%)${NC} Failed: ${MEDRED}${failed_tests} (${fpct}%)${NC}"
 else
-    echo -e "${MEDRED}No tests were run${NC}"
+    say -e "${MEDRED}No tests were run${NC}"
     exit 1
 fi
 

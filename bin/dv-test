@@ -12,11 +12,20 @@ fi
 out=_to_developer/test-all.out
 rm -rf "$out"
 mkdir -p "$out"
-    
+export DV_CLTEST_OUT="$out/cltest.out"
+
+function dump () {
+    if [ -f "$DV_CLTEST_OUT" ]; then
+        cat $DV_CLTEST_OUT
+    fi
+}
+
 if ! timeout 60 bash test-all.sh > $out/log.txt 2>&1; then
+    dump
     echo "### [dv-test] test-all.sh FAILED exit status $?" >> $out/log.txt
     status=1
-else 
+else
+    dump
     echo "test-all.sh exit status 0 -- ALL TESTS PASSED!" >> $out/log.txt
     status=0
 fi
