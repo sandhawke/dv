@@ -36,8 +36,10 @@ else
     # make this an argument ? something like the.
     if dv-sequence-basic; then
         date > .dv/challenge-pass
+        log_success "dv-challenge-run completed successfully in $cell"
     else
         date > .dv/challenge-fail
+        log_warning "dv-challenge-run failed in $cell"
     fi
 fi
 

@@ -1,4 +1,39 @@
 #!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+keys="chmod find head od sort tee touch tr uniq wc"
+keys="head"
+samples=3
+samples=2
+
+cd "$(dv-cell-create self-test)"
+stid=$(basename "$PWD")
+
+mkdir logs
+mkdir done
+mkdir running
+for sample in $(seq 1 $samples); do
+    for key in $keys; do
+        id=${key}_$sample
+        outfile="logs/$id"
+        running="running/$id"
+        done="done/$id"
+        echo $outfile
+        date -uIseconds > "$running"
+        (script --flush --quiet --command "dv-challenge-run '$key' '$stid'" >/dev/null 2>&1 "$outfile";
+         mv "$running" "$done";
+         date -uIseconds >> "$done";
+         echo -n "[$id done]") &
+        sleep 1 # pause a moment to avoid some race conditions :-(
+    done
+done
+
+echo "Processes spawned. Consider
+cd '$PWD'; wc -l logs/*; tail -f logs/*
+"
+exit 0
+
+
 # -*- mode: sh-mode -*-
 set -euo pipefail
 

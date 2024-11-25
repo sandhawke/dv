@@ -32,7 +32,8 @@ total=0
 
 while true; do
     ((total++)) || true
-    if [ $total -gt 15 ]; then
+    # empirically, 8 seems to be a plateau on my exact setup
+    if [ $total -gt 8 ]; then
         log_error "Too many debug loops ($total)"
         exit 1
     fi
@@ -40,14 +41,14 @@ while true; do
     if dv-test; then
         ((passing++)) || true
         log_info passing $passing times
-        if [ $passing -gt 1 ]; then
-            echo improved and passing!
+        if [ $passing -gt 0 ]; then
+            echo "(improved and?) passing!"
             exit 0
         fi
         export DV_PROMPT="$improve"
     else
-        if [ "$total" -gt 9 ]; then
-            dv-git-include 5
+        if [ "$total" -gt 4 ]; then
+            dv-git-include 3
             export DV_PROMPT="$recent"
         else 
             export DV_PROMPT="$fix"
