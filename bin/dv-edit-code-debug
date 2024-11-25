@@ -30,6 +30,12 @@ We still have one or more tests failing, after many tries. Look carefully at eac
 passing=0 # we want to pass a couple times, for improvement cycle
 total=0
 
+# TODO get a list of which cltests are passing
+# and if any of them start to fail, reject that
+# change and instead commit a devnote with what
+# the change was and why it was rejected, so we
+# can avoid going down that road in the future.
+
 while true; do
     ((total++)) || true
     # empirically, 8 seems to be a plateau on my exact setup
