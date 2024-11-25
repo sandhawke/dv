@@ -4,9 +4,10 @@ OLD*
 .nyc*
 node_modules
 out-*
-_*
 coverage
 .dv
+_runs
+__*
 
 # We're using dv tools here; don't check in their state
 _from_developer
