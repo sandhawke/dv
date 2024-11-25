@@ -1,0 +1,83 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+st=$(basename "$PWD")
+cells=$(dv-cell-select "$st")
+
+#echo Test: $st
+#echo Cells: $cells
+#for cell in $cells; do
+#    ls -1 $cell/.dv/cltest/run-*/fail* # | sed 's|/.dv/cltest/| |'
+#done
+
+count_matching_paths() {
+    local pattern="$1"
+    local count=0
+    
+    # Use nullglob to handle no matches gracefully
+    if [[ -o nullglob ]]; then
+        # Save old state
+        local old_nullglob=1
+    else
+        local old_nullglob=0
+        # Enable nullglob
+        shopt -s nullglob
+    fi
+    
+    # Count matches using array expansion
+    local matches=( $pattern )
+    count=${#matches[@]}
+    
+    # Restore original nullglob state if it was disabled
+    if ((old_nullglob == 0)); then
+        shopt -u nullglob
+    fi
+    
+    echo "$count"
+}
+
+
+for run in {1..9}; do
+    echo Run $run
+    count=0
+    totalpct=0
+    for cell in $cells; do
+        pass=$(count_matching_paths "$cell/.dv/cltest/run-${run}/pass*")
+        fail=$(count_matching_paths "$cell/.dv/cltest/run-${run}/fail*")
+        # echo "pass=$pass fail=$fail"
+        let total=$pass+$fail || true
+        if [ $total -gt 0 ]; then
+            let pct=100*$pass/$total || true
+            let count=$count+1
+            let totalpct=$totalpct+$pct
+            echo "$cell passing: ${pct}%  fails: $fail"
+        fi
+    done
+    # should perhaps count any that got 100% already as getting that
+    # for the rest of their runs
+    if [ $count -gt 0 ]; then
+        let pct=$totalpct/$count || true
+        echo "Active: ${count}  Average passing: ${pct}"%
+    fi
+done
+
+echo '======'
+for cell in $cells; do
+    for run in {1..9}; do
+        pass=$(count_matching_paths "$cell/.dv/cltest/run-${run}/pass*")
+        fail=$(count_matching_paths "$cell/.dv/cltest/run-${run}/fail*")
+        echo "$cell run $run pass=$pass fail=$fail"
+        if [ $pass -gt 0 ]; then
+            if [  $fail = 0 ]; then
+                echo "$cell complete in $run ********  "
+                break
+            fi
+        else
+            if [  $fail = 0 ]; then
+                echo "$cell DIED ******  before $run"
+                echo 'likely due to "no unsaved changes" from npm creating test files'
+                echo 'and/or test-all being out of sync'
+            fi
+        fi
+    done
+done
