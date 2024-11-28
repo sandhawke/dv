@@ -207,6 +207,9 @@ $(< explanation)
     mv explanation "$log/explanation"
 fi
 
+# dv_version=$(git -C"$(dv-path)" rev-parse HEAD)
+# echo "# dv version commit $dv_version"
+
 if dv-settings --check auto-commit=true; then
     dv-commit
 fi
