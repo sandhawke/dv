@@ -39,7 +39,7 @@ total=0
 while true; do
     ((total++)) || true
     # empirically, 8 seems to be a plateau on my exact setup
-    if [ $total -gt 8 ]; then
+    if [ $total -gt 9 ]; then
         log_error "Too many debug loops ($total)"
         exit 1
     fi

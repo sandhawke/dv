@@ -20,7 +20,11 @@ function dump () {
     fi
 }
 
-if ! timeout 60 bash test-all.sh > $out/log.txt 2>&1; then
+: ${DV_TIMEOUT:=60}
+
+log_debug "Running test-all.sh in '$PWD' timeout $DV_TIMEOUT"
+echo "### [dv-test] Running 'bash test-all.sh' with timeout of $DV_TIMEOUT seconds" >> $out/log.txt
+if ! timeout --verbose $DV_TIMEOUT bash test-all.sh >> $out/log.txt 2>&1; then
     dump
     echo "### [dv-test] test-all.sh FAILED exit status $?" >> $out/log.txt
     status=1
