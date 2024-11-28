@@ -1,6 +1,9 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
+: ${DV_INSTALL:=node20-a}
+: ${DV_SEQ:=dv-sequence-basic}
+
 challenge=$1
 challenge_dir=$(dv-path challenges/$challenge)
 if [ ! -d $challenge_dir ]; then
@@ -8,7 +11,11 @@ if [ ! -d $challenge_dir ]; then
     exit 1
 fi
 
-cell=$(dv-cell-create "$challenge" "$@")
+cell="$(dv-cell-create "$challenge" "$@")"
+log="$cell/.dv/challenge"
+mkdir -p "$log"
+printenv > "$log/env"
+date -uIns > "$log/start"
 
 cd "$challenge_dir/starting_files"
 rsync -avv . "$cell"
@@ -24,36 +31,32 @@ git add -A; git commit -m"starting files for challenge '$challenge'"
 
 ## Pick a system to install?  That's a indep. var, right?
 dv-install cltest
-dv-install node20-a
-
-# export DV_POINTS=100
-# export DV_POINTS_FILE="$cell/.dv/points.txt"
-# log_info Using $DV_POINTS_FILE
+dv-install "$DV_INSTALL"
 
 run="$challenge_dir/run.sh"
 if [ -f "$run" ]; then
     bash "$run" || log_warning "$run non-zero exit"
 else
     # make this an argument ? something like the.
-    if dv-sequence-basic; then
+    if $DV_SEQ; then
         date > .dv/challenge-pass
         log_success "dv-challenge-run completed successfully in $cell"
+        echo "pass" > "$log/pass"
     else
         date > .dv/challenge-fail
         log_warning "dv-challenge-run failed in $cell"
+        echo "fail" > "$log/fail"
     fi
 fi
 
-#if [ -f $DV_POINTS_FILE ]; then
-#    log_success "$(< "$DV_POINTS_FILE")"
-#fi
-
-# record more of what happened in the cell for later examination
+date -uIns > "$log/stop"
 
 changed_files="$(mktemp -d)"
 cd "$challenge_dir/starting_files"
 rsync -avv --backup --backup-dir="$changed_files" . "$cell"
 if [ -d "$changed_files" ]; then
     log_error "Challenger modified challenge files. Mods in $changed_files"
+    echo "Cheated, modified $(ls "$changed_files")" > "$log/cheated"
     exit 1
 fi
+
