@@ -60,6 +60,8 @@ while true; do
             export DV_PROMPT="$fix"
         fi
     fi
-    
-    dv-edit
+
+    # We're getting some baffling errors from dv-edit, like unpackmime
+    # mime failing mysteriously. Check logs for 'lineno' and this.
+    dv-edit || log_error "dv-edit had an error; ignoring"
 done
