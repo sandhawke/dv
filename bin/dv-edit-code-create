@@ -11,4 +11,6 @@ log_info dv-edit-code-create
 dv-edit
 
 # just for the user:
-dv-test || log_warning Some tests failed
+if [ -z "${DV_IN_SEQ:-}" ]; then
+    dv-test || log_warning Some tests failed
+fi

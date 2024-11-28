@@ -13,8 +13,12 @@ fi
 
 cell="$(dv-cell-create "$challenge" "$@")"
 log="$cell/.dv/challenge"
+if [ -d "$log" ]; then
+    log_error "Log dir $log already exists"
+    exit 1
+fi
 mkdir -p "$log"
-printenv > "$log/env"
+printenv | grep -v KEY | grep DV_ > "$log/env"
 date -uIns > "$log/start"
 
 cd "$challenge_dir/starting_files"
@@ -32,6 +36,8 @@ git add -A; git commit -m"starting files for challenge '$challenge'"
 ## Pick a system to install?  That's a indep. var, right?
 dv-install cltest
 dv-install "$DV_INSTALL"
+
+export DV_IN_SEQ=true
 
 run="$challenge_dir/run.sh"
 if [ -f "$run" ]; then
@@ -51,9 +57,10 @@ fi
 
 date -uIns > "$log/stop"
 
+# log_info checking to see if any test files were altered
 changed_files="/tmp/$(uuidgen | cut -c 25-)"
 cd "$challenge_dir/starting_files"
-rsync -avv --backup --backup-dir="$changed_files" . "$cell"
+rsync --backup --backup-dir="$changed_files" . "$cell"
 if [ -d "$changed_files" ]; then
     log_error "Challenger modified challenge files. Mods in $changed_files"
     echo "Cheated, modified $(ls "$changed_files")" > "$log/cheated"
