@@ -51,7 +51,7 @@ fi
 
 date -uIns > "$log/stop"
 
-changed_files="$(mktemp -d)"
+changed_files="/tmp/$(uuidgen | cut -c 25-)"
 cd "$challenge_dir/starting_files"
 rsync -avv --backup --backup-dir="$changed_files" . "$cell"
 if [ -d "$changed_files" ]; then
