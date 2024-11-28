@@ -50,6 +50,10 @@ fi
 
 # record more of what happened in the cell for later examination
 
-
-
-
+changed_files="$(mktemp -d)"
+cd "$challenge_dir/starting_files"
+rsync -avv --backup --backup-dir="$changed_files" . "$cell"
+if [ -d "$changed_files" ]; then
+    log_error "Challenger modified challenge files. Mods in $changed_files"
+    exit 1
+fi
