@@ -20,16 +20,18 @@ for sample in $(seq 1 $samples); do
         date -uIseconds > "$running"
         (
             export DV_WRITE_CELL_PATH="$(mktemp)"
-            script --flush --quiet --command "dv-challenge-run '$key' '$stid'" >/dev/null 2>&1 "$outfile";
+            script --flush --quiet --command "dv-challenge-run '$key' '$stid'" >/dev/null 2>&1 "$outfile"
+            echo DV_WRITE_CELL_PATH $DV_WRITE_CELL_PATH
             cell_path="$(< "$DV_WRITE_CELL_PATH")"
-            cp -a "$outfile" "$cell_path"
+            echo cell_path $cell_path
+            cp -a "$outfile" "$cell_path/.dv/challenge/script-log"
             rm "$DV_WRITE_CELL_PATH"
-            mv "$running" "$done";
-            date -uIseconds >> "$done";
-            cp -a "$outfile" 
+            cp -a "$outfile" "$cell_path"
+            mv "$running" "$done"
+            date -uIseconds >> "$done"
             echo -n "[$id done]"
         ) &
-        # sleep 1 # pause a moment to avoid some race conditions :-(
+        sleep 1 # pause for effect, used to be race condition
     done
 done
 

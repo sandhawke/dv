@@ -37,6 +37,7 @@ function block_regression () {
         return
     fi
     let prev=$max-1
+    log_debug comparing .dv/cltest/run-$max to older .dv/cltest/run-$prev
     prev_passed=($(cd .dv/cltest/run-$prev; find pass.*))
     if [ $? -gt 0 ]; then
         return # didnt pass any
@@ -54,10 +55,10 @@ function block_regression () {
     if [ ${#regress[@]} -eq 0 ]; then
         return
     fi
-    details="$(<git log -n1 -p)"
+    details="$(git log -n1 -p)"
     git reset --hard HEAD~1
     note="$(dv-path-create team-notes regression)"
-    cat > "$note" <<"_END"
+    cat > "$note" << _END
 We once attempted to make the code change show below, intending to solve some problems but it turned out to cause the following cltests to go from passing to failing: ${regress[@]}
 
 The change was rejected, but we share the diff here as a warning not to make this change like this again.
@@ -82,7 +83,7 @@ while true; do
     ((total++)) || true
     # empirically, 8 seems to be a plateau on my exact setup,
     # but lets increase it with no-regress
-    if [ $total -gt 16 ]; then
+    if [ $total -gt 12 ]; then
         log_error "Too many debug loops ($total)"
         exit 1
     fi

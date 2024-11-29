@@ -28,7 +28,7 @@ fi
 new_dir="$(dv-path-create-dir "$cell_root" "$slug")"
 log_debug new cell $new_dir
 if [ ${DV_WRITE_CELL_PATH:-} ]; then
-    echo "$cell" >> ${DV_WRITE_CELL_PATH:-}
+    echo "$new_dir" >> ${DV_WRITE_CELL_PATH:-}
 fi
 cd "$new_dir"
 

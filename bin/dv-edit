@@ -139,7 +139,11 @@ log_info "llpipe starting"
 
 export LLPIPE_LOG_RESPONSE="$log/http-response.txt"
 echo BEFORE "LLPIPE_LOG_RESPONSE='$LLPIPE_LOG_RESPONSE' llpipe < '$infile' | tee '$outfile'"
-llpipe < "$infile" | tee "$outfile"
+if [ -n "${DV_VERBOSE:-}" ]; then
+    llpipe < "$infile" | tee "$outfile"
+else
+    llpipe < "$infile" > "$outfile"
+fi
 
 log_info "llpipe exit value $?"
 
