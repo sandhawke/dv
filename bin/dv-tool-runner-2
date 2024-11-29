@@ -1,0 +1,31 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+function process_note() {
+    local note="$1"
+    local text="$(< "$note")"
+    line1="$(head -1 "$note")"
+    rest="$(tail +1 "$note")"
+    if egrep -q '^@bash ' <<<"$line1"; then
+        local arg="$(echo "$line1" | cut -c 7-)"
+        echo "Applying @bash to <$arg>"
+        local out=$(eval $arg 2>&1)
+        local exit=$?
+        echo -e "# Loop tool output\n$out\n\n# Original Request\n$text\n\n# Action\n\nPlease summarize this file and replace it with the essential knowledge gleaned from this tool use. What do we need to know going forward that we learned from seeing this response, if anything? If the purpose was just to make file modifications, go ahead and delete this file." > "$note" # yes clobber
+        echo replaced "$note"
+        return
+    fi
+    if egrep -q '^@patch ' <<<"$line1"; then
+        local arg="$(echo "$line1" | cut -c 8-)"
+        echo "Applying patch in $note"
+        patch <<< "$rest"
+        rm "$note"
+        return
+    fi
+    log_debug "ignoring file $note"
+}
+
+cd $(dv-project-dir)
+for note in team-notes/*; do
+    process_note "$note"
+done

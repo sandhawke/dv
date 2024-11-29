@@ -1,0 +1,1 @@
+Files here starting with '@patch' will have all lines after the first line (which is just '@patch') fed as stdin to the unix path program. This is a very efficient way to make small changed to files.

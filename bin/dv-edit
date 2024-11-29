@@ -128,6 +128,7 @@ if [ "$ask" = 'true' ]; then
     args+=(response_prompt="Please format your response as plain text a terminal.")
 else
     args+=(commit_message_prompt="Please attach a file '$commit_message_file' which is a clearly written, professional git commit message for all the file changes you are now providing. If you are not making any changes, skip this step.")
+    args+=(use_patches_prompt="The files you see attached here are the files in the project directory. You can replace any of them by attaching a file to your response using the same pathname. You can make more efficient changes by putting unix patch files in _from_developer/patches. Any file attached with a name like that will be applied as a patch. Please use patches if they will be shorter than attaching the whole file.")
     args+=(response_prompt="$(< $(dv-path prompts/response-format.md))")
 fi
 
@@ -153,7 +154,7 @@ if [ "$ask" = 'true' ]; then
     log_info "Using 'ask' mode, just outputing response"
     echo -e "
 ================ AI Response ================${GREEN}
-$(< $outfile)${NC}
+$(fmt $outfile)${NC}
 =============================================
 "
     exit 0
@@ -179,6 +180,8 @@ cat "$log/unpack-stdout.txt"
 # Some prompts may involved stuff being written here.  Should abstract
 # the name of this, since it might have semantics to some AIs. Like
 # $DIR_FROM_AI and $DIR_TO_AI but with possible quoting issues.
+
+dv-patch-runner
 
 if [ ! -f "$commit_message_file" ]; then
     mkdir -p "$(dirname "$commit_message_file")"

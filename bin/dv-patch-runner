@@ -1,0 +1,13 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+# There's not much point in giving the LLM feedback about what
+# happened to a patch. It's unlikely to try the exact some thing
+# again.
+
+if [ -d _from_developer/patches ]; then
+    for patch in _from_developer/patches/*; do
+        patch -p1 < $patch || echo PATCH FAILED
+        rm $patch
+    done
+fi
