@@ -1,0 +1,5 @@
+Be sure to change "PROGRAM_NAME_GOES_HERE" to the name of the command
+you're making, in both .env and Makefile.
+
+Also if we have any unit tests, run them from test-all.sh
+

@@ -2,11 +2,13 @@
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 log_warning dv-test running
-ls -altR test
 
 # Make sure the directory is clean now, so we can clean up
 # anything which tests leave behind in the main project directory
 dv-git-assert-clean --message="dv-test needs a clean directory"
+
+cd "$(dv-project-dir)"
+export PROJECT_ROOT="$(pwd)"
 
 if [ ! -f test-all.sh ]; then
     dv-install cltest

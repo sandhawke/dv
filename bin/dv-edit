@@ -72,6 +72,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# somehow left over sometimes :-(
+rm -rf _pre_mime
+
 if [ "$force" = 'false' ]; then
     dv-git-assert-clean
 fi
@@ -164,7 +167,7 @@ if [ "$force" = 'false' ]; then
     c2+=(--patch)
 fi
 
-awk "/Content-Type:/{p=NR}; p{print > \"$out2\"; next} {print > \"explanation\"}" "$outfile"
+awk "/Content-Type:/{p=NR}; p{print > \"$out2\"; next} {print > \"_pre_mime\"}" "$outfile"
 
 c2+=("$out2")
 dv-show-arguments "${c2[@]}" > "$log/arguments-for-unpackmime"
@@ -195,9 +198,14 @@ if [ -d _from_developer ]; then
 fi
 
 if [ -f explanation ]; then
+    echo '== separate explanation file' >> _pre_mime
+    cat explanation >> _pre_mime
+    rm explanation
+fi
+if [ -f _pre_mime ]; then
     echo -e "
 ================ AI Explanation ================${GREEN}
-$(fmt explanation)${NC}
+$(fmt _pre_mime)${NC}
 ================================================
 "
     echo "
@@ -205,10 +213,13 @@ $(fmt explanation)${NC}
 Explanation Text From AI
 ========================
 
-$(< explanation)
+$(< _pre_mime)
 " >> $commit_message_file
-    mv explanation "$log/explanation"
+    mv _pre_mime "$log"
 fi
+
+# not sure how this could still be here, but it is ?!
+rm -f _pre_mime
 
 # dv_version=$(git -C"$(dv-path)" rev-parse HEAD)
 # echo "# dv version commit $dv_version"

@@ -21,17 +21,17 @@ for sample in $(seq 1 $samples); do
         (
             export DV_WRITE_CELL_PATH="$(mktemp)"
             script --flush --quiet --command "dv-challenge-run '$key' '$stid'" >/dev/null 2>&1 "$outfile"
-            echo DV_WRITE_CELL_PATH $DV_WRITE_CELL_PATH
+            # echo DV_WRITE_CELL_PATH $DV_WRITE_CELL_PATH
             cell_path="$(< "$DV_WRITE_CELL_PATH")"
-            echo cell_path $cell_path
+            # echo cell_path $cell_path
             cp -a "$outfile" "$cell_path/.dv/challenge/script-log"
+            echo "$outfile" > "$cell_path/.dv/challenge/name"
             rm "$DV_WRITE_CELL_PATH"
-            cp -a "$outfile" "$cell_path"
             mv "$running" "$done"
             date -uIseconds >> "$done"
             echo -n "[$id done]"
         ) &
-        sleep 1 # pause for effect, used to be race condition
+        # sleep 1 # pause for effect, used to be race condition
     done
 done
 

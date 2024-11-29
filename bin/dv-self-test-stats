@@ -2,6 +2,7 @@
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 latest=$(ls -1td $(dv-cell-select self-test) | head -1)
+echo latest $latest
 latest_name=$(basename $latest)
 running=$(find $latest/running -type f | wc -l)
 pass=$(for cell in $(dv-cell-select $latest_name); do ls $cell/.dv/challenge; done | grep pass | wc -l)
