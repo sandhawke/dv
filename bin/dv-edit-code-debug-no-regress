@@ -29,6 +29,45 @@ recent="$basic
 We still have one or more tests failing, after many tries. Look carefully at each of the recent attempts to fix it. What did they get wrong? What is a better way to fix this?
 "
 
+function block_regression () {
+    # If the last cltest run failed anything that passed in the previous
+    # one, then rollback the commit and add a note about this.
+    max=$(dv-path-highest ".dv/cltest" run)
+    if [ "$max" -lt 2 ]; then
+        return
+    fi
+    let prev=$max-1
+    prev_passed=($(cd .dv/cltest/run-$prev; find pass.*))
+    if [ $? -gt 0 ]; then
+        return # didnt pass any
+    fi
+    # log_info prev passed: "${prev_passed[@]}";
+    regress=()
+    for flag in "${prev_passed[@]}"; do
+        if [ -f ".dv/cltest/run-$max/$flag" ]; then
+            log_debug "$flag" still passed
+        else
+            log_warning "regression: test '$flag' no longer passed, will roll back"
+            regress+=("$flag")
+        fi
+    done
+    if [ ${#regress[@]} -eq 0 ]; then
+        return
+    fi
+    details="$(<git log -n1 -p)"
+    git reset --hard HEAD~1
+    note="$(dv-path-create team-notes regression)"
+    cat > "$note" <<"_END"
+We once attempted to make the code change show below, intending to solve some problems but it turned out to cause the following cltests to go from passing to failing: ${regress[@]}
+
+The change was rejected, but we share the diff here as a warning not to make this change like this again.
+
+$details
+_END
+    git add "$note"
+    git commit -q -m "auto note on change that caused regression"
+}
+
 passing=0 # we want to pass a couple times, for improvement cycle
 total=0
 
@@ -38,14 +77,17 @@ total=0
 # the change was and why it was rejected, so we
 # can avoid going down that road in the future.
 
+log_debug entering loop
 while true; do
     ((total++)) || true
-    # empirically, 8 seems to be a plateau on my exact setup
-    if [ $total -gt 9 ]; then
+    # empirically, 8 seems to be a plateau on my exact setup,
+    # but lets increase it with no-regress
+    if [ $total -gt 16 ]; then
         log_error "Too many debug loops ($total)"
         exit 1
     fi
-    
+
+    log_debug starting dv-test
     if dv-test; then
         ((passing++)) || true
         log_info passing $passing times
@@ -55,20 +97,25 @@ while true; do
         fi
         export DV_PROMPT="$improve"
     else
+        log_debug dv-test found errors
         if [ "$total" -gt 4 ]; then
             dv-git-include 3
             export DV_PROMPT="$recent"
         else 
             export DV_PROMPT="$fix"
         fi
+        block_regression
+        log_debug block_regression done
     fi
-    if [ -f package.json ]; then
-        # just for the user
-        npm test || echo npm test failed
-    fi
+    #if [ -f package.json ]; then
+        # just for the user // but we'd need to git clean too
+        # npm test || echo npm test failed
+    #fi
 
     # while packmime can't handle EACCES in things the tests made
-    chmod -R u+rX _to_developer
+    if [ -d _to_developer ]; then
+       chmod -R u+rX _to_developer
+    fi
     
     # We're getting some baffling errors from dv-edit, like unpackmime
     # mime failing mysteriously. Check logs for 'lineno' and this.

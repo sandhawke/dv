@@ -1,0 +1,20 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+dir="${1:-$PWD}"     # Default to current directory if not specified
+slug="${2:-}"        # Optional slug prefix
+
+count=0
+while true; do
+    ((count++)) || true
+    if [ $count -gt 100 ]; then
+        log_error "internal error - cant seem to claim a new dir"
+        exit 1
+    fi
+    next="$(dv-path-create "$dir" "$slug")"
+    if mkdir "$next" ; then
+       echo $next
+       exit 0
+    fi
+    log_debug mkdir "$next" failed
+done

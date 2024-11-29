@@ -6,4 +6,4 @@ dv-settings auto-commit=true
 
 dv-edit-spec-create
 dv-edit-code-create
-dv-edit-code-debug
+dv-edit-code-debug-no-regress

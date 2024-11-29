@@ -1,10 +1,13 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
+message=''
+
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --silent) export DV_SILENT=true ;;
+        --message=*) message="$(echo $1 | cut -c 11-)" ;;
         *) log_error "Unknown parameter: $1"; exit 1 ;;
     esac
     shift
@@ -28,6 +31,7 @@ staged=$(git diff --cached --name-only)
 # If any changes are detected, provide helpful error and suggestions
 if [ -n "$untracked" ] || [ -n "$unstaged" ] || [ -n "$staged" ]; then
     log_error 'Command requires there be no unsaved changes.'
+    log_warning "$message"
 
     # Show what type of changes were found
     if [ -n "$untracked" ]; then

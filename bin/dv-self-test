@@ -2,7 +2,6 @@
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 keys="chmod find head od sort tee touch tr uniq wc"
-# keys="head od tee"
 samples=3
 
 cd "$(dv-cell-create self-test)"
@@ -19,83 +18,23 @@ for sample in $(seq 1 $samples); do
         done="done/$id"
         echo $outfile
         date -uIseconds > "$running"
-        (script --flush --quiet --command "dv-challenge-run '$key' '$stid'" >/dev/null 2>&1 "$outfile";
-         mv "$running" "$done";
-         date -uIseconds >> "$done";
-         echo -n "[$id done]") &
-        sleep 1 # pause a moment to avoid some race conditions :-(
+        (
+            export DV_WRITE_CELL_PATH="$(mktemp)"
+            script --flush --quiet --command "dv-challenge-run '$key' '$stid'" >/dev/null 2>&1 "$outfile";
+            cell_path="$(< "$DV_WRITE_CELL_PATH")"
+            cp -a "$outfile" "$cell_path"
+            rm "$DV_WRITE_CELL_PATH"
+            mv "$running" "$done";
+            date -uIseconds >> "$done";
+            cp -a "$outfile" 
+            echo -n "[$id done]"
+        ) &
+        # sleep 1 # pause a moment to avoid some race conditions :-(
     done
 done
 
 echo "Processes spawned. Consider
+cd '$PWD'; wc -l logs/*
 cd '$PWD'; wc -l logs/*; tail -f logs/*
 "
 exit 0
-
-
-# -*- mode: sh-mode -*-
-set -euo pipefail
-
-WDPREF=_out-dv-self-test
-WD0="$WDPREF/$(date -u +"%Y-%m-%dT%H%M%S")"
-mkdir -p "$WD0"
-cd "$WD0"
-WD="$PWD"
-
-usage() {
-    local self
-    self=$(basename "$0")
-    cat <<-EOF
-Usage: $self [KEYWORD]...]
-Test the dv system by asking it to re-implement the given unix command(s)
-based on their man page(s). All output and stats are written to a time-
-stamped directory in $WDPREF.
-
-KEYWORD is either unix command name or one of the our preset groups of commands:
-  FILE, TEXT, EASY, HARD, EXTREME, ALL
-
-Examples:
-  $self tee
-  $self EASY
-  $self curl sshd
-EOF
-}
-
-run_command_test() {
-    local cmd=$1
-    echo "TESTING $cmd"
-    cd "$WD"
-    mkdir "$cmd"
-    cd "$cmd"
-    mkdir input
-    zcat "$(man -w "$cmd")" > input/spec.troff
-    man "$cmd" > input/spec.txt
-    pwd
-    dv-auto
-    echo '<done>'
-}
-
-if [ $# -eq 0 ]; then
-    usage
-    exit 1
-fi
-
-declare -A groups
-groups[EASY]="tee chmod head"
-groups[HARD]="grep find tar awk gzip"
-groups[EXTREME]="ffmpeg busybox bash gcc python"
-groups[FILE]="chmod cp dd df du ln ls mkdir mv touch"
-groups[TEXT]="cat cut head od sort split tail tr uniq wc"
-groups[ALL]="${groups[EASY]} ${groups[HARD]} ${groups[EXTREME]} ${groups[FILE]} ${groups[TEXT]}"
-
-for arg in "$@"; do
-    if [[ -v "groups[$arg]" ]]; then
-        for cmd in ${groups[$arg]}; do
-            run_command_test "$cmd"
-        done
-    elif man -w "$arg" > /dev/null; then
-        run_command_test "$arg"
-    else
-        echo "... skipping '$arg' (no man page found to use as program spec)" >&2
-    fi
-done

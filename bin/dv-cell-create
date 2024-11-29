@@ -25,19 +25,11 @@ dv-settings cell-root=.dv/cells  # for cells to be hidden away
     cell_root="$PWD"
 fi
 
-new_dir="$(dv-path-create "$cell_root" "$slug")"
-
-# log_info "Creating new directory: $new_dir"
-
-if mkdir "$new_dir"; then
-    true
-    # log_success "New cell directory $new_dir"
-    # echo "$new_dir"    # save for pwd at end
-else
-    log_error "Failed to create directory: $new_dir"
-    exit 1
+new_dir="$(dv-path-create-dir "$cell_root" "$slug")"
+log_debug new cell $new_dir
+if [ ${DV_WRITE_CELL_PATH:-} ]; then
+    echo "$cell" >> ${DV_WRITE_CELL_PATH:-}
 fi
-
 cd "$new_dir"
 
 dv-init

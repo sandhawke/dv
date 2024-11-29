@@ -1,0 +1,20 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+latest=$(ls -1td $(dv-cell-select self-test) | head -1)
+latest_name=$(basename $latest)
+running=$(find $latest/running -type f | wc -l)
+pass=$(for cell in $(dv-cell-select $latest_name); do ls $cell/.dv/challenge; done | grep pass | wc -l)
+fail=$(for cell in $(dv-cell-select $latest_name); do ls $cell/.dv/challenge; done | grep fail | wc -l)
+pct="---"
+let pct="100*$pass/($pass+$fail)"
+echo
+echo latest $latest
+echo $running still running
+echo "$pass pass ($pct%) $fail fail"
+echo
+echo fails:
+for cell in $(dv-cell-select $latest_name); do find $cell/.dv/challenge; done | grep fail | sed 's|/.dv/challenge/fail||'
+
+    # awk -F'/' '{print $6}'
+

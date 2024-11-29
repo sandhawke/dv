@@ -1,48 +1,21 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
-dir="${1:-$PWD}"      # Default to current directory if not specified
+dir="${1:-$PWD}"     # Default to current directory if not specified
 slug="${2:-}"        # Optional slug prefix
-pattern=''
-highest=0
 
 mkdir -p "$dir"
+highest=$(dv-path-highest "$dir" "$slug")
+let next="$highest + 1"
 
-# Set up the pattern based on whether we have a slug
-if [ -n "$slug" ]; then
-    pattern="^${slug}-([0-9]+)$"
-else
-    pattern="^([0-9]+)$"
-fi
-
-# Find the highest number
-while IFS= read -r entry; do
-    if [[ -e "$dir/$entry" ]]; then  # Check if file/dir exists
-        if [ -n "$slug" ]; then
-            if [[ "$entry" =~ $pattern ]]; then
-                num="${BASH_REMATCH[1]}"
-                if [ "$num" -gt "$highest" ]; then
-                    highest=$num
-                fi
-            fi
-        else
-            if [[ "$entry" =~ $pattern ]]; then
-                num="${BASH_REMATCH[1]}"
-                if [ "$num" -gt "$highest" ]; then
-                    highest=$num
-                fi
-            fi
-        fi
-    fi
-done < <(ls -A "$dir")
-
-# Generate the next number
-next=$((highest + 1))
-
-# Create the new name
 if [ -n "$slug" ]; then
     echo "$dir/$slug-$next"
 else
     echo "$dir/$next"
 fi
+
+# race condition -- someone else might make this at the
+# same time. dv-path-create-dir should save you, if you
+# need a dir.
+
 

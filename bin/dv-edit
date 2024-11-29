@@ -138,7 +138,8 @@ rm -rf _from_developer
 log_info "llpipe starting"
 
 export LLPIPE_LOG_RESPONSE="$log/http-response.txt"
-llpipe < "$infile" > "$outfile"
+echo BEFORE "LLPIPE_LOG_RESPONSE='$LLPIPE_LOG_RESPONSE' llpipe < '$infile' | tee '$outfile'"
+llpipe < "$infile" | tee "$outfile"
 
 log_info "llpipe exit value $?"
 
