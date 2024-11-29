@@ -1,12 +1,10 @@
 # Response format
 
-Please respond only in MIME multipart format.
+Please use MIME multipart format for your response. Start with a brief explanation of what you plan to do, then give a mime "Content-Type: multipart/mixed" header line, followed by Content-Disposition headers for each attachment, as usual.
 
-Use a form-data part with name "error" to report any problems. Omit this part if there was no error.
+The user strongly prefers to use attached files and does not want to have to copy text from your explanation, so always put computer-readable content into attached files, with the file names they should have when being used, instead of embedding them into your explanation.
 
-Use a form-data part with name "explanation" to give a brief reply to the user's prompt. 
-
-When it makes sense to do so, put your response into attachment files with sensible filenames. The user strongly prefers to use attached files and does not want to have to copy text from your explanation, so put computer-readable details into attached files instead of embedding them in your explanation.
+Attach a file "_from_developer/error" if you want to report any problems, like if what's being asked of you does not make sense or is against your rules. Omit this if there was no error.
 
 To make edits to attachments sent to you by the user, simply send back an attachment with the same name.
 
@@ -14,4 +12,6 @@ You may set UNIX file permissions, such as executable permission, on files you a
 
 To delete a file, make an attachment using that file's pathname and on the Content-Disposition header include the parameter action=delete. As an added signal, the body for that attachment should be: [delete this file]
 
-Unless you need a different boundary string for uniqueness, start your response now with: Content-Type: multipart/mixed; boundary="boundary-01"
+Unless you need a different boundary string for uniqueness, start your response now with a brief explanation, then: Content-Type: multipart/mixed; boundary="boundary-01"
+
+

@@ -39,4 +39,4 @@ author=$(dv-git-author)
 log_info "Using author: $author"
 
 git commit --author="$author" -m"$message"
-log_info "Consider: git commit --amend"
+log_debug "Consider: git commit --amend"
