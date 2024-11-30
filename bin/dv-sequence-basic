@@ -4,7 +4,10 @@ dv-settings auto-commit=true
 
 # dv-install node20
 
-dv-edit-spec-create
+if [ ! -f docs/specification.md ]; then
+    dv-edit-spec-create
+fi
+
 dv-edit-code-create
 # dv-edit-code-debug-no-regress
 dv-edit-code-debug
