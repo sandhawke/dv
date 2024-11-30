@@ -20,7 +20,11 @@ Put your output in this file: docs/specification.md
 "
 
 log_info dv-edit-spec-create
-dv-edit docs/user-request.md cltest
+if [ -d cltest ]; then
+   dv-edit docs/user-request.md cltest
+else
+    dv-edit docs/user-request.md
+fi
 
 dv-file-exists docs/specification.md
 
