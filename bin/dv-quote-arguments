@@ -1,0 +1,15 @@
+#!/bin/bash
+
+show_arguments() {
+    if [ $# -eq 0 ]; then
+        return
+    fi
+    
+    position=1
+    for arg in "$@"; do
+        echo -n "'$arg' "
+    done
+}
+
+show_arguments "$@"
+echo
