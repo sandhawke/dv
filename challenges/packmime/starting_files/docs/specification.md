@@ -123,3 +123,19 @@ The boundary string starts as "boundary-00" and increments if content contains t
 $ echo "--boundary-00" > file.txt
 $ packmime file.txt
 Content-Type: multipart/mixed; boundary="boundary-01"
+
+--boundary-01
+Content-Disposition: attachment; filename="file.txt"
+
+--boundary-00
+--boundary-01--
+```
+
+## Error Handling
+
+- Inaccessible files/directories: Warning to stderr, continue processing
+- Invalid filenames (containing quotes or non-space whitespace): Warning, skip
+- Paths above CWD: Warning at verbose ≥ 1, continue processing
+- Directory recursion > 32 levels: Fatal error
+- Named CLI terms not existing: Fatal error
+- UTF-8 validation failures: Automatic base64 encoding
