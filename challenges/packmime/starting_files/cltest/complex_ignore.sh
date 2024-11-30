@@ -1,8 +1,18 @@
 #!/bin/bash
-mkdir -p test/a/b test/c
-touch test/a/1.txt test/a/b/2.txt test/c/3.txt
-output=$($COMMAND --ignore="test/a/**" --unignore="**/2.txt" test)
+mkdir -p test/src/cache test/build test/logs
+touch test/src/file.js test/src/cache/temp.js test/build/output.js test/logs/error.log
+echo "important" > test/logs/important.log
+
+output=$($COMMAND \
+    --ignore="**/cache/**" \
+    --ignore="build/" \
+    --ignore="**/*.log" \
+    --unignore="**/important.log" \
+    test)
+
 [ $? -eq 0 ] &&
-  [[ "$output" != *"1.txt"* ]] &&
-  [[ "$output" == *"2.txt"* ]] &&
-  [[ "$output" == *"3.txt"* ]]
+  [[ "$output" == *"file.js"* ]] &&
+  [[ "$output" != *"temp.js"* ]] &&
+  [[ "$output" != *"output.js"* ]] &&
+  [[ "$output" != *"error.log"* ]] &&
+  [[ "$output" == *"important.log"* ]]

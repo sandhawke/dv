@@ -1,7 +1,16 @@
 #!/bin/bash
-mkdir -p test
-echo "keep" > test/keep.txt
-echo "special" > test/ignore-but-keep.txt
-output=$($COMMAND --ignore="*ignore*" --unignore="*keep.txt" test)
+mkdir -p test/logs/system test/logs/app
+echo "keep" > test/logs/app/important.log
+echo "ignore" > test/logs/system/debug.log
+echo "special" > test/logs/app/debug.log
+
+output=$($COMMAND \
+    --ignore="**/*.log" \
+    --ignore="**/logs/**" \
+    --unignore="**/important.log" \
+    test)
+
 [ $? -eq 0 ] &&
-  [[ "$output" == *"ignore-but-keep.txt"* ]]
+  [[ "$output" == *"important.log"* ]] &&
+  [[ "$output" != *"system/debug.log"* ]] &&
+  [[ "$output" != *"app/debug.log"* ]]
