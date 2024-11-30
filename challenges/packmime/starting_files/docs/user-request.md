@@ -28,9 +28,9 @@ File to process like .gitignore, specifying paths and path prefixes to skip over
 Adds an inverse pattern. Paths that match one of the unignore patterns are immune from being ignored via the --ignore / --use-ignore-file logic. 
 
 
---on-file-too-large=[skip|truncate|replace|fail]
+--on-file-too-large=[skip|truncate|fail]
 
-Default 'replace', which replaces content with a message about it being omited since it is too large, stating its size and the max size. 'fail' means the program halts, with an error exit code, possibly leaving a partially generated mime file.  A file is considered too large if either --max-file-bytes or --max-file-tokens is reached for that file.
+With 'truncate', the default, the file is truncated to be below the max size, and an additional header is include where it's attached, 'X-Truncation-Notice' with details of the truncation. Skip is similar, with the same notice, but it's truncated to zero bytes, ad explained in the notice. 'fail' means the program halts, with an error exit code, possibly leaving a partially generated mime file.  A file is considered too large if either --max-file-bytes or --max-file-tokens is reached for that file.
 
 --max-file-bytes=NUMBER
 
