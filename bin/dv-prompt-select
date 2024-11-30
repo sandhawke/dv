@@ -1,0 +1,26 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+: ${DV_PROMPT_STYLES:=base}
+
+# tab-complete would be nice
+
+purpose="$1"
+dir="$(dv-path prompts)"
+log_debug "selecting prompt for purpose '$1' in '$dir'"
+for style in ${DV_PROMPT_STYLES//:/ }; do
+    log_debug "looking for style '$style'"
+    base="$dir/$style/$purpose"
+    for suffix in .md .txt ''; do
+        file="$base$suffix"
+        log_debug "trying '$file'"
+        if [ -f "$file" ]; then
+            # could expand '{{...}}' for some values, but what?
+            cat "$file"
+            exit 0
+        fi
+    done
+done
+log_error "No prompt for purpose '$1' in styles '$DV_PROMPT_STYLES'"
+exit 1
+    

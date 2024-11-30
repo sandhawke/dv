@@ -1,0 +1,1 @@
+Please look over this software project and output lines with one line per filename. Start each line with the filename, then a number 0 to 10 indicating how important the file is to someone trying to make this project work correctly. The rest of the line can be a brief natural language explanation of why that number. 
