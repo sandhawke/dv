@@ -128,7 +128,7 @@ if [ "$ask" = 'true' ]; then
     args+=(response_prompt="Please format your response as plain text a terminal.")
 else
     args+=(commit_message_prompt="Please attach a file '$commit_message_file' which is a clearly written, professional git commit message for all the file changes you are now providing. If you are not making any changes, skip this step.")
-    args+=(use_patches_prompt="The files you see attached here are the files in the project directory. You can replace any of them by attaching a file to your response using the same pathname. You can make more efficient changes by putting unix patch files in _from_developer/patches. Any file attached with a name like that will be applied as a patch. Please use patches if they will be shorter than attaching the whole file.")
+    # SEEMS TO USUALLY FAIL args+=(use_patches_prompt="The files you see attached here are the files in the project directory. You can replace any of them by attaching a file to your response using the same pathname. You can make more efficient changes by putting unix patch files in _from_developer/patches. Any file attached with a name like that will be applied as a patch. Please use patches if they will be shorter than attaching the whole file.")
     args+=(response_prompt="$(< $(dv-path prompts/response-format.md))")
 fi
 
@@ -154,7 +154,7 @@ if [ "$ask" = 'true' ]; then
     log_info "Using 'ask' mode, just outputing response"
     echo -e "
 ================ AI Response ================${GREEN}
-$(fmt $outfile)${NC}
+$(fmt -s $outfile)${NC}
 =============================================
 "
     exit 0
@@ -201,14 +201,14 @@ if [ -d _from_developer ]; then
 fi
 
 if [ -f explanation ]; then
-    echo '== separate explanation file' >> _pre_mime
+    echo '==== separate explanation file ====' >> _pre_mime
     cat explanation >> _pre_mime
     rm explanation
 fi
 if [ -f _pre_mime ]; then
     echo -e "
 ================ AI Explanation ================${GREEN}
-$(fmt _pre_mime)${NC}
+$(fmt -s _pre_mime)${NC}
 ================================================
 "
     echo "
