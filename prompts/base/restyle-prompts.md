@@ -4,11 +4,11 @@ As an experiment, please write new versions of each of those prompts in the foll
 
 Here are the styles:
 
-minimal - just a few words
+title - just a few words to suggest what is to be done, but likely without essential details
 
-terse - quite short, but longer than minimal
+terse - as short as possible, while still keeping the essential details
 
-vital - expressing the vital importance of doing this
+vital - expressing the vital importance of doing this well
 
 angry - expressing anger that this hasn't been done properly, and that the prompter will be even more angry if it's not done now and done at a very high quality
 
