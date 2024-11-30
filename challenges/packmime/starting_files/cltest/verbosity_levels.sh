@@ -20,5 +20,3 @@ cmp -s v2.txt v.txt &&
 [ $(wc -l < vv.txt) -gt $(wc -l < v2.txt) ] &&
 # v4 (-vvv) should have most lines
 [ $(wc -l < vvv.txt) -gt $(wc -l < vv.txt) ] &&
-# Clean up temp files
-rm -f input.txt quiet.txt v{0,1,2}.txt v{,v,vv}.txt
