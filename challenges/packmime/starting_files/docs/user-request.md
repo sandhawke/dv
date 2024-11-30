@@ -30,15 +30,15 @@ Adds an inverse pattern. Paths that match one of the unignore patterns are immun
 
 --on-file-too-large=[skip|truncate|replace|fail]
 
-Default 'replace', which replaces content with a message about it being omited since it is too large, stating its size and the max size. 'fail' means the program halts, with an error exit code, possibly leaving a partially generated mime file.
+Default 'replace', which replaces content with a message about it being omited since it is too large, stating its size and the max size. 'fail' means the program halts, with an error exit code, possibly leaving a partially generated mime file.  A file is considered too large if either --max-file-bytes or --max-file-tokens is reached for that file.
 
 --max-file-bytes=NUMBER
 
-Maximum byte length of a file to include, the point at which it triggers the --on-file-too-large action. This is the filesystem size of the file, which can be determined without reading it. Files over this size should not be read.
+Maximum byte length of a file to include, the point at which it triggers the --on-file-too-large action. This is the filesystem size of the file, which can be determined without reading it. Files over this size should not be read. This is bytes, not the character string length after utf8 decoding, nor after base64 encoding.
 
 --max-file-tokens=NUMBER
 
-Maximum token length of a file to include, in tokens calculated using OpenAI gpt4 tokenization.  https://github.com/openai/tiktoken for python. https://www.npmjs.com/package/js-tiktoken for js.  etc.
+Maximum token length of a file to include, in tokens calculated using OpenAI gpt4 tokenization (encoding cl100k_base).  https://github.com/openai/tiktoken for python. https://www.npmjs.com/package/js-tiktoken for js.  etc. This may not be perfect for all models, so view it as an approximation.
 
 --context=NUMBER
 
@@ -92,6 +92,9 @@ Output general stages of processing, with color coding.
 
 Output details, include directory tranversal details and processing of ignore/include patterns, with color coding.
 
+--config=CONFIGFILE
+
+Defaults to .packmime-config.json
 
 ## Notes
 
@@ -99,5 +102,10 @@ The boundary string should be "boundary-00" unless that text occurs in the conte
 
 If files are reached for which we do not have read access, or we reach directories which cannot be traversed, print a warning to stderr and skip them. These must not be fatal errors.
 
-The pathname of the parameter for Content-Disposition should be relative tot he current working directory, even if specified as an absolute path on the command name, and it shouold be canonicallized, removing unnecessary '.' and '..' segments.
+The pathname of the parameter for Content-Disposition should be relative to the current working directory, even if specified as an absolute path on the command name, and it shouold be canonicallized, removing unnecessary '.' and '..' segments and otherwise normalizing paths names. Skip with a warning any path names include quote characters (") or whitespace other than space (0x20). Relative paths above the CWD are allowed, but a warning should be issued at or above --verbose=1.
 
+MIME headers do count toward token limits. base64 content is has its tokens counted after being base64 encoded.
+
+Recursive directory depth should max at 32 and give a fatal error.
+
+Exit code should be 0 unless a fatal error occured, such as one of the named file/dir terms on the CLI not existing.

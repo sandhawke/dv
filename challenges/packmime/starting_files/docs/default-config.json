@@ -1,0 +1,33 @@
+{
+  "defaults": {
+    "prefix": "",
+    "suffix": "",
+    "ignorePatterns": [],
+    "unignorePatterns": [],
+    "onFileTooLarge": "replace",
+    "maxFileBytes": 16384,
+    "maxFileTokens": 8000,
+    "context": 32000,
+    "preserve": false,
+    "mimeTypes": false,
+    "lineEndings": "lf",
+    "symlinkAction": "auto",
+    "verboseLevel": 2,
+    "base64Files": [],
+    "maxRecursionDepth": 32,
+    "initialBoundary": "boundary-00",
+    "overflowPrefix": "packmime-overflow",
+    "overflowDigits": 6
+  },
+  "included-messages": {
+    "fileTooLarge": "Content omitted: file size {{size}} exceeds limit of {{maxSize}} bytes",
+    "tooManyTokens": "Content omitted: estimated {{tokens}} tokens exceeds limit of {{maxTokens}}",
+    "symlinkDescription": "{{source}} is a symbolic link to {{target}}"
+  }
+  "warnings": {
+    "skipNoAccess": "Warning: Skipping {{path}} - no read access",
+    "skipTraversal": "Warning: Cannot traverse directory {{path}}",
+    "pathAboveCwd": "Warning: Path {{path}} is above current working directory",
+    "invalidPathChars": "Warning: Skipping {{path}} - contains invalid characters"
+  }
+}
