@@ -14,7 +14,7 @@ The cltest suite is part of the program specification and must not be changed. F
 
 Please get the software working properly. You are encouraged to refactor, simplify, extend, or otherwise improve the software in any way that helps it work better.
 
-If cltests are failing, but the unit tests are all working, you should probably add more unit tests, unless the problem is clearly in the command-line interface.
+If cltests are failing, but the unit tests are all working, you should probably add more unit tests, unless the problem is clearly in the command-line interface. It's good for every export from a file to be unit tested, if that's possible without enourmous amounts of code.
 "
 
 improve="$basic
@@ -41,7 +41,7 @@ total=0
 while true; do
     ((total++)) || true
     # empirically, 8 seems to be a plateau on my exact setup
-    if [ $total -gt 9 ]; then
+    if [ $total -gt 7 ]; then
         log_error "Too many debug loops ($total)"
         exit 1
     fi

@@ -4,6 +4,10 @@ source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 keys="chmod find head od sort tee touch tr uniq wc"
 samples=3
 
+# try this!
+keys="packmime"
+samples=30
+
 cd "$(dv-cell-create self-test)"
 stid=$(basename "$PWD")
 
