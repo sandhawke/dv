@@ -1,0 +1,4 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+dv-edit -sdefine-next-sprint
