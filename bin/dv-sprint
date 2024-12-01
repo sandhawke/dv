@@ -1,0 +1,38 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+cd "$(dv-project-dir)"
+dv-git-assert-clean
+
+rm -rf _to_developer
+if dv-test; then
+    log_success Already passing all tests
+    exit 0
+fi
+
+if [ -f test-this-sprint.sh -o -f team-notes/sprint.md ]; then
+    rm -f test-this-sprint.sh team-notes/sprint.md
+    git add -A; git commit -q -m'clearing out sprint notes'
+fi
+
+log_info dv-sprint: defining spring
+dv-edit -sdefine-next-sprint
+
+for step in {1..5}; do
+    log_info dv-sprint: starting iteration $step
+    rm -rf _to_developer; 
+    if DV_TEST_FILE=test-this-sprint.sh dv-test; then
+        log_success Passing all sprint tests
+        exit 0
+    fi
+    dv-edit -scode-in-sprint
+done
+
+log_info dv-sprint: wrapping up this sprint without success
+DV_TEST_FILE=test-this-sprint.sh dv-test || true
+exit 1
+
+
+# something about adding unit tests?
+# dv-ask -p'Tell me about the unit tests in the code path to the failing cltests'
+
