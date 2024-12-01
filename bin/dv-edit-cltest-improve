@@ -1,0 +1,11 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+dv-file-exists docs/user-request.md
+dv-dir-exists cltest
+dv-file-exists cltest/_setup.sh
+
+dv-edit -scltest-improve
+
+
+
