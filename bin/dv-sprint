@@ -5,7 +5,7 @@ cd "$(dv-project-dir)"
 dv-git-assert-clean
 
 rm -rf _to_developer
-if dv-test; then
+if [[ $(dv-test) = 'pass' ]]; then
     log_success Already passing all tests
     exit 0
 fi
@@ -21,7 +21,7 @@ dv-edit -sdefine-next-sprint
 for step in {1..6}; do
     log_info dv-sprint: starting iteration $step
     rm -rf _to_developer; 
-    if DV_TEST_FILE=test-this-sprint.sh dv-test; then
+    if [[ $(DV_TEST_FILE=test-this-sprint.sh dv-test) = pass ]]; then
         log_success Passing all sprint tests
         exit 0
     fi
@@ -34,10 +34,9 @@ for step in {1..6}; do
 done
 
 log_info dv-sprint: wrapping up this sprint without success
-DV_TEST_FILE=test-this-sprint.sh dv-test || true
-exit 1
+# show the user the test status, via stderr
+DV_TEST_FILE=test-this-sprint.sh dv-test > /dev/null
 
-
-# something about adding unit tests?
-# dv-ask -p'Tell me about the unit tests in the code path to the failing cltests'
-
+# we only exit 1 when there's an internal error. Not passing tests
+# is a separate issue.
+exit 0

@@ -23,7 +23,8 @@ export DV_CLTEST_OUT="$out/cltest.out"
 
 function dump () {
     if [ -f "$DV_CLTEST_OUT" ]; then
-        cat $DV_CLTEST_OUT
+        cat $DV_CLTEST_OUT 1>&2
+        sleep 1 # pause just a second so the user gets a glimpse
     fi
 }
 
@@ -34,17 +35,20 @@ echo "### [dv-test] Running 'bash ${DV_TEST_FILE}' with timeout of $DV_TIMEOUT s
 if ! timeout --verbose $DV_TIMEOUT bash ${DV_TEST_FILE} >> $out/log.txt 2>&1; then
     dump
     echo "### [dv-test] ${DV_TEST_FILE} FAILED exit status $?" >> $out/log.txt
-    status=1
+    status=fail
 else
     dump
     echo "${DV_TEST_FILE} exit status 0 -- ALL TESTS PASSED!" >> $out/log.txt
-    status=0
+    status=pass
 fi
 
 # Clean up anything which got added
 git clean -fd
 
-log_warning 'dv-test done'
-sleep 1 # pause just a second so the user gets a glimpse
+# Need to figure out why I have stuff around sometimes, still
+dv-git-assert-clean --message="dv-test still not clean after 'git clean -fd'"
 
-exit $status
+# log_warning 'dv-test done'
+
+echo "$status"
+exit 0

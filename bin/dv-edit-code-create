@@ -8,5 +8,5 @@ dv-edit
 
 # just for the user:
 if [ -z "${DV_IN_SEQ:-}" ]; then
-    dv-test || log_warning Some tests failed
+    dv-test
 fi

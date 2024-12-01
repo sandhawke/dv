@@ -89,7 +89,7 @@ while true; do
     fi
 
     log_debug starting dv-test
-    if dv-test; then
+    if [[ $(dv-test) = 'pass' ]]; then
         ((passing++)) || true
         log_info passing $passing times
         if [ $passing -gt 0 ]; then
@@ -113,12 +113,5 @@ while true; do
         # npm test || echo npm test failed
     #fi
 
-    # while packmime can't handle EACCES in things the tests made
-    if [ -d _to_developer ]; then
-       chmod -R u+rX _to_developer
-    fi
-    
-    # We're getting some baffling errors from dv-edit, like unpackmime
-    # mime failing mysteriously. Check logs for 'lineno' and this.
-    dv-edit || log_error "dv-edit had an error; ignoring"
+    dv-edit
 done

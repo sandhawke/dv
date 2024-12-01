@@ -5,7 +5,7 @@ for round in {1..15}; do
     dv-sprint
     # throw one in here maybe?
     dv-edit -scode-fix
-    if dv-test; then
+    if [[ $(dv-test) = pass ]]; then
         log_success all tests passing!
         exit 0
     fi

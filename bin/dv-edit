@@ -153,13 +153,28 @@ args+=(--ignore=.dv)
 args+=(--ignore=_from_developer)
 args+=(--ignore=package-lock.json)
 
-# we want to send this, but it's probably in .gitignore so it will be
-# left out by packmime unless we say this
+remove_empty_files() {
+   for file in "$@"; do
+       [ -f "$file" ] && [ ! -s "$file" ] && rm "$file"
+   done
+   return 0
+}
+
 if [ -d _to_developer ]; then
+    # we want to send this, but it's probably in .gitignore so it will be
+    # left out by packmime unless we say this
     args+=(--include=_to_developer)
+    
     # Sometimes the tests leave a working_directory we're not allowed to read
     # or traverse.
-    chmod -Rv u+rX _to_developer > _to_developer/chmod_changes_for_sending.log 2>&1
+    chmod_log=_to_developer/chmod_changes_for_sending.txt
+    chmod -Rv u+rX _to_developer > "$chmod_log" 2>&1
+
+    # And sometimes they leave broken symlinks
+    symlink_log=_to_developer/broken_symlink_report.txt
+    dv-remove-broken-symlinks > "$symlink_log" 2>&1
+    
+    remove_empty_files "$chmod_log" "$symlink_log"
 fi
 
 # all the passthru args, which should include paths
@@ -293,6 +308,17 @@ fi
 
 if [[ -f _pre_mime ]]; then
     echo _pre_mime still exists here after it should have just been moved
+    exit 1
+fi
+
+if [[ -f _from_developer/error ]]; then
+    log_error "The AI signalled an error, halting."
+    echo -e "
+================ AI Error ================${YELLOW}
+$(< _from_developer/error)${NC}
+==========================================
+"
+    log_warning "Skipping 'dv-commit'. Check git state."
     exit 1
 fi
 

@@ -1,0 +1,32 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+# Find all broken symlinks and verbosely remove them
+
+find . -type l | while read -r link; do
+    # Get the directory and filename of the symlink
+    link_dir=$(dirname "$link")
+    link_name=$(basename "$link")
+    
+    # Change to the symlink's directory to properly evaluate relative paths
+    cd "$link_dir" 2>/dev/null || continue
+    
+    # Check if the target exists from the symlink's directory context
+    if [ ! -e "$link_name" ]; then
+        # Get the target path
+        target=$(readlink "$link_name")
+        
+        # Output details before deletion
+        echo "Broken symlink found:"
+        echo "  Link: $link"
+        echo "  Target (missing): $target"
+        
+        # Delete the broken symlink
+        rm "$link_name"
+        echo "  Action: deleted link"
+        echo "-------------------"
+    fi
+    
+    # Return to the original directory
+    cd - >/dev/null
+done

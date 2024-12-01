@@ -11,12 +11,6 @@ recent="$(dv-prompt-select code-recent)"
 passing=0 # we want to pass a couple times, for improvement cycle
 total=0
 
-# TODO get a list of which cltests are passing
-# and if any of them start to fail, reject that
-# change and instead commit a devnote with what
-# the change was and why it was rejected, so we
-# can avoid going down that road in the future.
-
 while true; do
     ((total++)) || true
     # empirically, 8 seems to be a plateau on my exact setup
@@ -25,7 +19,7 @@ while true; do
         exit 1
     fi
     
-    if dv-test; then
+    if [[ $(dv-test) = 'pass' ]]; then
         ((passing++)) || true
         log_info passing $passing times
         if [ $passing -gt 0 ]; then
@@ -46,10 +40,5 @@ while true; do
         npm test || echo npm test failed
     fi
 
-    # while packmime can't handle EACCES in things the tests made
-    chmod -R u+rX _to_developer
-    
-    # We're getting some baffling errors from dv-edit, like unpackmime
-    # mime failing mysteriously. Check logs for 'lineno' and this.
-    dv-edit || log_error "dv-edit had an error; ignoring"
+    dv-edit
 done
