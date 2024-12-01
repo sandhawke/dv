@@ -1,6 +1,8 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
+: ${DV_TEST_FILE:=test-all.sh}
+
 log_warning dv-test running
 
 # Make sure the directory is clean now, so we can clean up
@@ -27,15 +29,15 @@ function dump () {
 
 : ${DV_TIMEOUT:=60}
 
-log_debug "Running test-all.sh in '$PWD' timeout $DV_TIMEOUT"
-echo "### [dv-test] Running 'bash test-all.sh' with timeout of $DV_TIMEOUT seconds" >> $out/log.txt
-if ! timeout --verbose $DV_TIMEOUT bash test-all.sh >> $out/log.txt 2>&1; then
+log_debug "Running ${DV_TEST_FILE} in '$PWD' timeout $DV_TIMEOUT"
+echo "### [dv-test] Running 'bash ${DV_TEST_FILE}' with timeout of $DV_TIMEOUT seconds" >> $out/log.txt
+if ! timeout --verbose $DV_TIMEOUT bash ${DV_TEST_FILE} >> $out/log.txt 2>&1; then
     dump
-    echo "### [dv-test] test-all.sh FAILED exit status $?" >> $out/log.txt
+    echo "### [dv-test] ${DV_TEST_FILE} FAILED exit status $?" >> $out/log.txt
     status=1
 else
     dump
-    echo "test-all.sh exit status 0 -- ALL TESTS PASSED!" >> $out/log.txt
+    echo "${DV_TEST_FILE} exit status 0 -- ALL TESTS PASSED!" >> $out/log.txt
     status=0
 fi
 
