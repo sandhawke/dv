@@ -47,6 +47,11 @@ while [[ $# -gt 0 ]]; do
             prompt=$(cut <<<"$1" -c 3-)
             shift
             ;;
+        -s*)
+            saved_prompt=$(cut <<<"$1" -c 3-)
+            prompt=$(dv-prompt-select "$saved_prompt")
+            shift
+            ;;
         --force)
             # unpackmime flag, but we also want the flag for checking
             force=true
