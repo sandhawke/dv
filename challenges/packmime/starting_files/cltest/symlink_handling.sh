@@ -1,5 +1,3 @@
-The symlink test has some issues with checking output. Here's my fix:
-
 #!/bin/bash
 source $(dirname $0)/_setup.sh
 

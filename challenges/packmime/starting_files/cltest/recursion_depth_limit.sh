@@ -1,5 +1,3 @@
-The recursion depth limit test has a potential issue - it's creating too many levels (33) to verify a limit of 32. Also, it doesn't properly check for the expected error condition. Here's my fix:
-
 #!/bin/bash
 source $(dirname $0)/_setup.sh
 
