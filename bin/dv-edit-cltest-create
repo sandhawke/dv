@@ -3,6 +3,8 @@ source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 dv-file-exists docs/user-request.md
 
+dv-install cltest
+
 dv-edit -scltest-create
 
 dv-dir-exists cltest
