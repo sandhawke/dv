@@ -1,4 +1,0 @@
-I'll make these changes:
-1. Update complex_ignore.sh to better demonstrate nested patterns
-2. Update unignore_pattern.sh to show more complex pattern interaction
-3. Add new test files for additional pattern scenarios
