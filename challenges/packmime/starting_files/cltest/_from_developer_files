@@ -1,0 +1,9 @@
+I found several tests using $ for end of line checks. Here are my proposed changes to each:
+
+basic_file_attachment.sh
+basic_form_data.sh
+directory_traversal.sh
+mixed_input_types.sh
+path_canonicalization.sh
+prefix_suffix.sh
+special_cases.sh

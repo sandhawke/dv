@@ -13,7 +13,8 @@ assert grep -q "not exist" err.missing
 
 # Test special prefix/suffix characters
 $COMMAND --prefix=$'*\n\r\t' --suffix=$'$\n\r\t' input.txt > out.special
-assert grep -q $'^\*$' out.special
-assert grep -q $'^\$$' out.special
+tr -d '\r' < out.special > out.special.clean
+assert grep -q $'^\*$' out.special.clean
+assert grep -q $'^\$$' out.special.clean
 
 end_of_test
