@@ -5,7 +5,17 @@ dv-file-exists docs/user-request.md
 dv-dir-exists cltest
 dv-file-exists cltest/_setup.sh
 
+# pretty arbitrary, but as I try it by hand, this seems
+# reasonable.
 dv-edit -scltest-improve
+dv-edit -scltest-improve
+dv-edit -scltest-improve
+dv-edit -scltest-confirm
+dv-edit -scltest-confirm
+dv-edit -scltest-improve
+dv-edit -scltest-improve
+dv-edit -scltest-improve
+dv-edit -scltest-confirm
+dv-edit -scltest-confirm
 
-# maybe a few times and confirm?
 
