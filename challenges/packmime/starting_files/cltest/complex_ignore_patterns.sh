@@ -2,11 +2,10 @@
 source $(dirname $0)/_setup.sh
 
 # Create complex directory structure
-mkdir -p test/{a,b}/{1,2}/{x,y}
-echo "content" > test/a/1/x/file.txt
-echo "content" > test/a/1/y/file.txt
-echo "content" > test/a/2/x/file.txt
-echo "content" > test/b/1/y/file.txt
+for dir in test/{a,b}/{1,2}/{x,y}; do
+    mkdir -p "$dir" || exit 1
+    echo "content" > "$dir/file.txt" || exit 1
+done
 
 # Test complex pattern combinations
 $COMMAND \
