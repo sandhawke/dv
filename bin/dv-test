@@ -45,5 +45,6 @@ fi
 git clean -fd
 
 log_warning 'dv-test done'
+sleep 1 # pause just a second so the user gets a glimpse
 
 exit $status

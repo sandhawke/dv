@@ -18,14 +18,19 @@ fi
 log_info dv-sprint: defining spring
 dv-edit -sdefine-next-sprint
 
-for step in {1..5}; do
+for step in {1..6}; do
     log_info dv-sprint: starting iteration $step
     rm -rf _to_developer; 
     if DV_TEST_FILE=test-this-sprint.sh dv-test; then
         log_success Passing all sprint tests
         exit 0
     fi
-    dv-edit -scode-in-sprint
+    if [ $step = 4 ]; then
+        # might be better for us to pick one of the tests?
+        dv-edit -ssingle-test-failure
+    else
+        dv-edit -scode-in-sprint
+    fi
 done
 
 log_info dv-sprint: wrapping up this sprint without success

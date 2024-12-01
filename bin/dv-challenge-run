@@ -2,7 +2,7 @@
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 : ${DV_INSTALL:=node20-a}
-: ${DV_SEQ:=dv-sequence-basic}
+: ${DV_SEQ:=dv-sequence-with-sprints}
 
 challenge=$1
 challenge_dir=$(dv-path challenges/$challenge)

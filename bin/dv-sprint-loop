@@ -1,0 +1,14 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+for round in {1..15}; do
+    dv-sprint
+    # throw one in here maybe?
+    dv-edit -scode-fix
+    if dv-test; then
+        log_success all tests passing!
+        exit 0
+    fi
+done
+
+exit 1

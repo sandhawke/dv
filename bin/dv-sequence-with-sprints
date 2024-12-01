@@ -1,0 +1,17 @@
+#!/bin/bash
+
+dv-settings auto-commit=true
+
+# dv-install node20
+
+if [ ! -f docs/specification.md ]; then
+    dv-edit-spec-create
+fi
+
+dv-edit-code-create
+
+for round in {1..5}; do
+    dv-edit -scode-add-more
+done
+
+dv-sprint-loop
