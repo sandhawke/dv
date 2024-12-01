@@ -13,11 +13,28 @@ asserts_passed=0
 asserts_failed=0
 
 function assert() {
+    # The shell negation operator isn't recognized when it's in
+    # double quotes, so we have to handle it ourselves.
+    if [ "$1" = "!" ]; then
+        shift
+        assert_false "$@"
+        return
+    fi
+    
     if "$@"; then
         let asserts_passed=1+$asserts_passed || true
     else
         let asserts_failed=1+$asserts_failed || true
         echo >&2 "assertion failed, cltest '$0', assertion: $(dv-quote-arguments "$@")"
+    fi
+}
+
+function assert_false() {
+    if "$@"; then
+        let asserts_failed=1+$asserts_failed || true
+        echo >&2 "assertion failed, cltest '$0', assertion: $(dv-quote-arguments "$@")"
+    else
+        let asserts_passed=1+$asserts_passed || true
     fi
 }
 
