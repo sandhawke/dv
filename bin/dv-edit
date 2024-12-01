@@ -1,6 +1,10 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
+# tries to be robust and re-try components, so exit code 1 means
+# unrecoverable error, don't bother continuing a script that's using
+# this.
+
 cmd=$(basename $0)
 usage() {
     cat <<EOF
@@ -30,6 +34,24 @@ force=false
 prompt="${DV_PROMPT:-}"
 ask=false
 
+function use_saved_prompt() {
+    prompt="$(dv-prompt-select "$1")"
+}
+
+function use_text_prompt() {
+    prompt="$1"
+}
+
+function use_auto_prompt() {
+    local key="$1"
+    if [[ $key =~ ' ' ]]; then
+        use_text_prompt "$key"
+    else
+        use_saved_prompt "$key"
+    fi
+}
+    
+
 while [[ $# -gt 0 ]]; do
     case $1 in
         --help)
@@ -40,16 +62,19 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --prompt=*)
-            prompt=$(cut <<<"$1" -c 10-)
+            use_auto_prompt "$(cut <<<"$1" -c 10-)"
             shift
             ;;
         -p*)
-            prompt=$(cut <<<"$1" -c 3-)
+            use_auto_prompt "$(cut <<<"$1" -c 3-)"
             shift
             ;;
         -s*)
-            saved_prompt=$(cut <<<"$1" -c 3-)
-            prompt=$(dv-prompt-select "$saved_prompt")
+            use_saved_prompt "$(cut <<<"$1" -c 3-)"
+            shift
+            ;;
+        -t*)
+            use_text_prompt "$(cut <<<"$1" -c 3-)"
             shift
             ;;
         --force)

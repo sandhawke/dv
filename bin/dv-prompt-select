@@ -5,7 +5,14 @@ source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 # tab-complete would be nice
 
-purpose="$1"
+purpose="${1-}"
+
+if [[ $purpose = "" ]]; then
+    log_warning 'Prompt not specified. Saved prompts in "base" style are:'
+    (cd "$(dv-path prompts/base)"; ls -C --hide="*~" | expand -t 8 | sed 's/\.md//g') >&2
+    exit 1
+fi
+
 dir="$(dv-path prompts)"
 log_debug "selecting prompt for purpose '$1' in '$dir'"
 for style in ${DV_PROMPT_STYLES//:/ }; do
