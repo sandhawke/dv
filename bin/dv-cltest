@@ -78,13 +78,16 @@ run_test() {
     local test_name=$(basename "$test_file" .sh)
     local result_dir="_to_developer/cltest-results/${test_name}"
     local working_dir="${result_dir}/working_directory"
+    local tmp_dir="${result_dir}/tmp_directory"
     local absolute_test_path=$(readlink -f "$test_file")
     local value=''
 
     # Create test result directory and working directory
     mkdir -p "$result_dir"
     mkdir -p "$working_dir"
+    mkdir -p "$tmp_dir"
     export WORKING_DIR="$working_dir"
+    export TMP="$(readlink -f "$tmp_dir")"
 
     # echo running "$absolute_test_path"
     # echo stdout going to "$PWD/$result_dir/stdout"

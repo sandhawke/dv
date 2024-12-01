@@ -129,7 +129,7 @@ end_of_test
 
 ## Testing `find`
 
-The example uses our write_to_file function which creates directories when necessary, and uses echo internally, so "-e" makes escapes like \n work.
+This example uses our write_to_file function which creates directories when necessary, and uses echo internally, so "-e" makes escapes like \n work.
 
 ```bash
 #!/bin/bash
@@ -152,7 +152,33 @@ assert diff expected out
 end_of_test
 ```
 
+## Testing `find` in the current directory
+
+The variable TMP is provided as a directory to put files that might get in the way of tests.
+
+```bash
+#!/bin/bash
+source $(dirname $0)/_setup.sh
+
+write_to_file file1.txt 'file1'
+write_to_file a/file2.txt 'file2'
+
+# Important to use $TMP here, because otherwise
+# the file "out" could be match, too.
+$COMMAND . -type f -print | sort > "$TMP/out"
+
+cat <<_END > "$TMP/expected"
+./a/file2.txt
+./file1.txt
+_END
+
+assert diff "$TMP/expected" "$TMP/out"
+end_of_test
+```
+
 ## Generic test of the `--version` option
+
+This is a good general test to see if the command can be executed at all. It should usual be included in a test suite.
 
 ```bash
 #!/bin/bash
@@ -160,7 +186,7 @@ source $(dirname $0)/_setup.sh
 
 # This is a good test to see if the command can execute at all.
 # If it fails this, the program probably isn't running at all,
-# maybe due to syntax errors or incorrect file names.
+# maybe due to syntax errors or incorrect pathnames.
 
 $COMMAND --version > out
 

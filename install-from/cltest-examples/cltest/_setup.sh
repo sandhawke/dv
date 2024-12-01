@@ -2,6 +2,11 @@
 #    #!/bin/bash
 #    source $(dirname $0)/_setup.sh
 
+# This means any command with a non-zero exit code will cause
+# the script to exit. Probably what we want for tests, but there
+# are some situations where this is bad, like shell math which
+# evaluates to zero gives a non-zero exit. So use "|| true" after
+# commands where you want to ignore the exit code.
 set -euo pipefail
 
 if [ -z "${PROJECT_ROOT:-}" -o -z "${COMMAND:-}" ]; then
@@ -9,44 +14,25 @@ if [ -z "${PROJECT_ROOT:-}" -o -z "${COMMAND:-}" ]; then
     exit 1
 fi
 
+# Program-specific functions should go in _helpers.sh not _setup.sh
+helpers="$(dirname "$0")/_helpers.sh"
+if [[ -f $helpers ]]; then
+  source "$helpers"
+fi
+
 asserts_passed=0
 asserts_failed=0
 
 function assert() {
-    # The shell negation operator isn't recognized when it's in
-    # double quotes, so we have to handle it ourselves.
-    if [ "$1" = "!" ]; then
-        shift
-        assert_false "$@"
-        return
-    fi
-    
     if "$@"; then
         let asserts_passed=1+$asserts_passed || true
     else
         let asserts_failed=1+$asserts_failed || true
         echo >&2 "assertion failed, cltest '$0', assertion: $(dv-quote-arguments "$@")"
-    fi
-}
-
-function assert_false() {
-    if "$@"; then
-        let asserts_failed=1+$asserts_failed || true
-        echo >&2 "assertion failed, cltest '$0', assertion: $(dv-quote-arguments "$@")"
-    else
-        let asserts_passed=1+$asserts_passed || true
     fi
 }
 
 function end_of_test() {
     # leave files around for diagnosis
     exit $asserts_failed
-}
-
-function write_to_file() {
-    local filename="$1"
-    shift
-    dir="$(dirname "$filename")"
-    mkdir -p "$dir"
-    echo "$@" >> "$filename"
 }

@@ -6,6 +6,8 @@ The tests should look fairly similar to what a user might type when using the pr
 
 Tests should not clean up any files they create. Instead, they should leave them in place, in the working directory, to help with diagnosis. Each test will be run in a new empty directory. Tests should use $COMMAND as is, without modifying or checking it.
 
+If the command being tested operates on all files in the current directory (like `ls` or `find`), then files redirected as stdin and stdout can get in the way. To handle this, put them in a different directory. TMP is provided for that, used like: `$COMMAND > "$TMP/out"`
+
 The environment variable PROJECT_ROOT will contain the pathname of the directory where general project files are, such as README.md, LICENSE, .gitignore. Other files and directories here will depend on the language and system. Files in this directory tree should not be modified. Tests might use this variable like `cp -a "$PROJECT_ROOT/cltest/sample-file-1" .` to copy a sample file to the working directory of the running test.
 
 The script should signal success by exit code 0, failure by an non-zero exit code. Let the shell propagate these codes automatically, if that's shorter or simpler.

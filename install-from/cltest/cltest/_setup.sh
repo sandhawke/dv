@@ -14,6 +14,12 @@ if [ -z "${PROJECT_ROOT:-}" -o -z "${COMMAND:-}" ]; then
     exit 1
 fi
 
+# Program-specific functions should go in _helpers.sh not _setup.sh
+helpers="$(dirname "$0")/_helpers.sh"
+if [[ -f $helpers ]]; then
+  source "$helpers"
+fi
+
 asserts_passed=0
 asserts_failed=0
 
