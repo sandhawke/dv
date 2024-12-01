@@ -1,0 +1,25 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+# Initialize associative array to store key-value pairs
+declare -A replacements
+
+# Process command line arguments
+for arg in "$@"; do
+    if [[ $arg =~ ^([^=]+)=(.*)$ ]]; then
+        key="${BASH_REMATCH[1]}"
+        value="${BASH_REMATCH[2]}"
+        replacements["$key"]="$value"
+    fi
+done
+
+# Read stdin line by line
+while IFS= read -r line; do
+    # For each key-value pair, perform replacement
+    for key in "${!replacements[@]}"; do
+        value="${replacements[$key]}"
+        # Replace {{key}} with value
+        line=${line//\{\{$key\}\}/$value}
+    done
+    echo "$line"
+done
