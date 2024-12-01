@@ -25,3 +25,11 @@ function end_of_test() {
     # leave files around for diagnosis
     exit $asserts_failed
 }
+
+function write_to_file() {
+    local filename="$1"
+    shift
+    dir="$(dirname "$filename")"
+    mkdir -p "$dir"
+    echo "$@" >> "$filename"
+}
