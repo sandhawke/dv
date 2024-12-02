@@ -29,7 +29,6 @@ write () {
         echo "$(date -u -Ins)" "$@" >> "$DV_LOGFILE"
     fi
     if [[ -n "$status_file" && -f "$status_file" ]]; then
-        echo status_file $status_file "$@" >&2 
         echo "$@" > "$status_file"
     fi
 }

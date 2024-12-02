@@ -193,6 +193,9 @@ else
 fi
 
 dv-show-arguments "${args[@]}" > "$log/arguments-for-packmime"
+dv-quote-arguments "packmime" "${args[@]}" "> $infile" > "$log/packmime.sh"
+
+log_info running packmime
 
 packmime "${args[@]}" > "$infile"
 

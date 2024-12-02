@@ -18,13 +18,17 @@ echo "spawning stage 2 " > "$DV_STATUS_FILE"
 
 export DV_WRITE_CELL_PATH="$(mktemp)"
 # echo exported DV_WRITE_CELL_PATH $DV_WRITE_CELL_PATH
-script --flush --quiet --command "dv-challenge-run '$challenge'" >/dev/null 2>&1 "$outfile"
-cell_path="$(< "$DV_WRITE_CELL_PATH")"
-# echo have DV_WRITE_CELL_PATH $DV_WRITE_CELL_PATH value '$cell_path'
+script --flush --quiet --command "dv-challenge-run '$challenge'" >/dev/null 2>&1 "$outfile" || true
 
-if [[ ! -d "$cell_path" ]]; then
-    echo "dv-challenge-run-silent: missing cell '$cell_path'"
-    exit 1
+if [[ -s "$DV_WRITE_CELL_PATH" ]]; then
+    cell_path="$(< "$DV_WRITE_CELL_PATH")"
+    # echo have DV_WRITE_CELL_PATH $DV_WRITE_CELL_PATH value '$cell_path'
+
+    if [[ ! -d "$cell_path" ]]; then
+        log_error "dv-challenge-run-silent: missing cell '$cell_path' from DV_WRITE_CELL_PATH=$DV_WRITE_CELL_PATH"
+    fi
+else
+    log_error "dv-challenge-run-silent: DV_WRITE_CELL_PATH=$DV_WRITE_CELL_PATH still empty"
 fi
 
 echo "$base" > "$cell_path/.dv/challenge/parent"
@@ -35,6 +39,8 @@ echo "$id" > "$cell_path/.dv/challenge/id"
 rm "$DV_WRITE_CELL_PATH"
 mv "$running" "$done_file"
 date -uIseconds >> "$done_file"
-echo "done, status $(<"$cell_path/.dv/challenge/status")" > "$DV_STATUS_FILE"
+
+# should we add color?
+echo "$(<"$cell_path/.dv/challenge/status") - done in $cell_path" > "$DV_STATUS_FILE"
 
 # echo -n "[$id done]"

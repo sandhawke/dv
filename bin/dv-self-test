@@ -32,7 +32,7 @@ done
 echo "All processes spawned. Consider:
 
 cd '$PWD'
-cd '$PWD' && watch -n 0.5 dv-self-test-status
+cd '$PWD' && watch -n 0.2 dv-self-test-status
 wc -l logs/*
 tail -f logs/* # might be a ton of output
 
