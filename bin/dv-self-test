@@ -6,6 +6,7 @@ samples=${DV_SAMPLES:-1}
 
 if [[ -z "$group" ]]; then
     echo "Select group: $(cd $(dv-path challenges); echo *)"
+    echo "Consider setting DV_SAMPLES, currently ${DV_SAMPLES}"
     exit 1
 fi
 
