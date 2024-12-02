@@ -32,12 +32,12 @@ function dump () {
 
 log_debug "Running ${DV_TEST_FILE} in '$PWD' timeout $DV_TIMEOUT"
 echo "### [dv-test] Running 'bash ${DV_TEST_FILE}' with timeout of $DV_TIMEOUT seconds" >> $out/log.txt
-if ! timeout --verbose $DV_TIMEOUT bash ${DV_TEST_FILE} >> $out/log.txt 2>&1; then
-    dump
+if ! timeout --verbose $DV_TIMEOUT bash ${DV_TEST_FILE} 2>&1 | tee -a $out/log.txt; then
+    # dump
     echo "### [dv-test] ${DV_TEST_FILE} FAILED exit status $?" >> $out/log.txt
     status=fail
 else
-    dump
+    # dump
     echo "${DV_TEST_FILE} exit status 0 -- ALL TESTS PASSED!" >> $out/log.txt
     status=pass
 fi

@@ -64,6 +64,20 @@ fi
 rm -rf _to_developer/cltest-results
 mkdir -p _to_developer/cltest-results
 
+if dv-git-assert-clean --silent; then
+    hash=$(git log -1 --format="%H")
+    passing_dir="$(readlink -m .dv/cltest/by-commit/$hash/passing_tests)"
+    if [ -d "$passing_dir" ]; then
+        log_debug 'fyi: cltest already run on this repo version'
+    fi
+    rm -rf ".dv/cltest/latest/passing_tests"
+else
+    passing_dir="$(readlink -m .dv/cltest/latest/passing_tests)"
+    # maybe dv-commit will save these away?
+fi
+mkdir -p "$passing_dir"
+log_debug "passing_dir='$passing_dir'"
+
 # Initialize counters
 total_tests=0
 passed_tests=0
@@ -96,6 +110,7 @@ run_test() {
         value=$?
         echo "PASS" > "$result_dir/status"
         touch "$log/pass.$test_name"
+        touch "$passing_dir/$test_name"
         ((passed_tests++)) || true
         say -e "${GREEN}✓ ${test_name} passed${NC}"
         passed_test_dirs+=("$result_dir")

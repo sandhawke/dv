@@ -105,6 +105,7 @@ done
 
 if [ "$force" = 'false' ]; then
     dv-git-assert-clean --message="dv-edit needs things git-clean to start"
+    was_clean=true
 fi
 
 dotdv="$(dv-project-dir)/.dv"
@@ -328,6 +329,10 @@ if [[ -f _from_developer/error ]]; then
 $(< _from_developer/error)${NC}
 ==========================================
 "
+fi
+
+if [[ $was_clean = true ]]; then
+    dv-cltest-regression-block
 fi
 
 # is there a way to signal back that changes were made?  stdout like

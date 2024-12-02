@@ -1,0 +1,78 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+# If the changes about to be committed will make some cltest
+# no longer pass, than undo the changes, and instead write
+# a note about this change that would have caused a regression.
+
+if dv-git-assert-clean --silent; then
+    log_error "dv-cltest-regressed is meant to be run before commiting"
+    exit 0 # non-fatal, might be there was just no change
+fi
+
+prev_hash=$(git log -1 --format="%H")
+log_debug prev_hash $prev_hash
+prev_dir=".dv/cltest/by-commit/$prev_hash/passing_tests"
+if [ ! -d "$prev_dir" ]; then
+    log_debug 'no results saved for previous commit, assuming no regression'
+    exit 0
+fi
+prev_passed=($(cd "$prev_dir" && echo *)) 
+log_debug prev_passed $prev_passed
+
+now_dir=".dv/cltest/latest/passing_tests"
+rm -rf "$now_dir"
+
+if dv-cltest; then
+    log_debug All tests pass, cannot be a regression
+    exit 0
+fi
+
+regress=()
+for flag in "${prev_passed[@]}"; do
+    if [ -f "$now_dir/$flag" ]; then
+        log_debug "$flag" still passing
+    else
+        log_warning "REGRESSION: test '$flag' no longer passed. Blocking commit."
+        regress+=("$flag")
+    fi
+done
+
+if [ ${#regress[@]} -eq 0 ]; then
+    log_debug 'no regression'
+    exit 0
+fi
+
+details="$(git diff)"
+count=$(git log --oneline | wc -l)
+message="not available"
+if [ -f _from_developer/commit_message ]; then
+    message="$(< _from_developer/commit_message)"
+fi
+
+log_debug "doing git-clean to drop regression, writing note"
+git restore .
+git clean -fd
+
+note="$(dv-path-create team-notes regression)"
+cat > "$note" << _END
+The following change was attempted, but it caused a regression on cltests. Specifically these tests stopped working: ${regress[*]}
+
+The changes were not accepted, due to this regression. Let's try to avoid repeating whatever mistakes in this change caused the regression.
+
+At the time of this proposed change, the git log had $count entries.
+
+## Proposed commit message
+
+$message
+
+## Proposed diff
+
+$details
+_END
+
+mkdir -p _from_developer
+echo 'Add note about attempted regression' > _from_developer/commit_message 
+
+log_debug "created '$note'"
+exit 0
