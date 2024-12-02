@@ -170,7 +170,7 @@ if [ -d _to_developer ]; then
     # Sometimes the tests leave a working_directory we're not allowed to read
     # or traverse.
     chmod_log=_to_developer/chmod_changes_for_sending.txt
-    chmod -Rv u+rX _to_developer > "$chmod_log" 2>&1
+    chmod -Rv u+rX _to_developer 2>&1 | grep -v "' retained as" > "$chmod_log" || true
 
     # And sometimes they leave broken symlinks
     symlink_log=_to_developer/broken_symlink_report.txt

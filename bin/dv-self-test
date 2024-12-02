@@ -10,7 +10,12 @@ if [[ -z "$group" ]]; then
     exit 1
 fi
 
-keys=$(cd "$(dv-path challenges/$group)"; echo *)
+keys=$(cd "$(dv-path challenges/$group)" && echo *)
+log_debug keys="$keys"
+if [[ -z "$keys" ]]; then
+    log_error No match
+    exit 1
+fi
 
 cd "$(dv-cell-create self-test)"
 
