@@ -104,7 +104,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ "$force" = 'false' ]; then
-    dv-git-assert-clean
+    dv-git-assert-clean --message="dv-edit needs things git-clean to start"
 fi
 
 dotdv="$(dv-project-dir)/.dv"
@@ -194,7 +194,7 @@ else
 fi
 
 dv-show-arguments "${args[@]}" > "$log/arguments-for-packmime"
-dv-quote-arguments "packmime" "${args[@]}" "> $infile" > "$log/packmime.sh"
+dv-quote-arguments "packmime" "${args[@]}" > "$log/packmime.sh"
 
 log_info running packmime
 
@@ -250,7 +250,9 @@ if [ "$force" = 'false' ]; then
 fi
 
 # seems unnecessary, but I'm trying to track down a bug
-if [ "$force" = 'false' ]; then dv-git-assert-clean; fi
+if [ "$force" = 'false' ]; then
+    dv-git-assert-clean --message="dv-edit sees things git-dirty after llpipe"
+fi
 
 # text before Content-Type goes to _pre_mime, the rest goes to $out2
 awk "/Content-Type:/{p=NR}; p{print > \"$out2\"; next} {print > \"_pre_mime\"}" "$outfile"

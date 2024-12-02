@@ -7,7 +7,8 @@ show_arguments() {
     
     position=1
     for arg in "$@"; do
-        echo -n "'$arg' "
+        arg2="$(sed "s/'/'\\\''/g" <<<"$arg")"
+        echo -n "'$arg2' "
     done
 }
 

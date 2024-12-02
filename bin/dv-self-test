@@ -26,6 +26,8 @@ samples=$samples
 keys=$keys
 
 $env
+
+dv version is $(dv-version)
 EOF
 
 mkdir -p status

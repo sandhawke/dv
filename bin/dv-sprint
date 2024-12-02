@@ -2,7 +2,7 @@
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 cd "$(dv-project-dir)"
-dv-git-assert-clean
+dv-git-assert-clean --message="dv-sprint needs things git-clean"
 
 rm -rf _to_developer
 if [[ $(dv-test) = 'pass' ]]; then
