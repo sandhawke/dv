@@ -4,7 +4,7 @@ The user strongly prefers to use attached files and does not want to have to cop
 
 It is important to use small files, where possible, instead of larger ones. For software, keep modules under 100 lines, more like 20-50 lines, even if it means having more modules. This supports unit testing, and makes it much easier to edit files via attachments as we are doing.
 
-Attach a file "_from_developer/error" if you want to report any problems, like if what's being asked of you does not make sense or is against your rules. Omit this if there was no error.
+Attach a file "_from_developer/error" if you want to report a serious problem which requires user intervention. For example, if the instructions make no sense, information you need to do your job is missing, the system seems misconfigured, or you are being asked to do something against the rules. Omit this if there was no such error.
 
 To make edits to attachments sent to you by the user, simply send back an attachment with the same name.
 

@@ -6,16 +6,12 @@ dv-dir-exists cltest
 dv-file-exists cltest/_setup.sh
 
 # pretty arbitrary, but as I try it by hand, this seems
-# reasonable.
-dv-edit -scltest-improve
-dv-edit -scltest-improve
-dv-edit -scltest-improve
-dv-edit -scltest-confirm
-dv-edit -scltest-confirm
-dv-edit -scltest-improve
+# reasonable.  Hm.  Cutting it down a bit.
 dv-edit -scltest-improve
 dv-edit -scltest-improve
 dv-edit -scltest-confirm
+dv-edit -scltest-improve
+dv-edit -scltest-improve
 dv-edit -scltest-confirm
 
 # wait for "Git clean, nothing to commit" ?

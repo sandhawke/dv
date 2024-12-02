@@ -1,0 +1,40 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+challenge="$1"
+id="$2"
+export DV_STATUS_FILE="$3"
+
+base="$PWD"
+outfile="$base/logs/$id"
+running="$base/running/$id"
+done_file="$base/done/$id"
+
+mkdir_for_files "$outfile" "$running" "$done_file"
+date -uIseconds >> "$running"
+
+# echo "[dv-challenge-run-silent] logging to '$outfile'"
+echo "spawning stage 2 " > "$DV_STATUS_FILE"
+
+export DV_WRITE_CELL_PATH="$(mktemp)"
+# echo exported DV_WRITE_CELL_PATH $DV_WRITE_CELL_PATH
+script --flush --quiet --command "dv-challenge-run '$challenge'" >/dev/null 2>&1 "$outfile"
+cell_path="$(< "$DV_WRITE_CELL_PATH")"
+# echo have DV_WRITE_CELL_PATH $DV_WRITE_CELL_PATH value '$cell_path'
+
+if [[ ! -d "$cell_path" ]]; then
+    echo "dv-challenge-run-silent: missing cell '$cell_path'"
+    exit 1
+fi
+
+echo "$base" > "$cell_path/.dv/challenge/parent"
+# echo cell_path $cell_path
+cp -a "$outfile" "$cell_path/.dv/challenge/script-log"
+echo "$outfile" > "$cell_path/.dv/challenge/name"
+echo "$id" > "$cell_path/.dv/challenge/id"
+rm "$DV_WRITE_CELL_PATH"
+mv "$running" "$done_file"
+date -uIseconds >> "$done_file"
+echo "done, status $(<"$cell_path/.dv/challenge/status")" > "$DV_STATUS_FILE"
+
+# echo -n "[$id done]"

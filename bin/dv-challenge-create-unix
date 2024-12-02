@@ -1,24 +1,31 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
-challenge="$1"
+command="$1"
+challenge="${2:-unix-1/$command}"
 challenge_dir=$(dv-path challenges/$challenge)
 if [ -d $challenge_dir ]; then
     log_error Already exists: $challenge_dir
     exit 1
 fi
 
-cell=$(dv-cell-create "setup-$challenge")
+cell=$(dv-cell-create "setup-$command")
 cd $cell
+
+function moved() {
+    log_warning "CONSIDER:
+cd '$PWD'
+" 
+}
 
 log_info Creating test suite for $challenge
 
 cat <<_END > docs/user-request.md
-We need a drop-in replacement for the unix "$challenge" program.
+We need a drop-in replacement for the unix "$command" program.
 
 It must have all the POSIX behaviors and any added features that have become common in newer unix systems.
 
-It should still be called "$challenge" so we can use it just the same.
+It should still be called "$command" so we can use it just the same.
 _END
 
 if [ -n "${2:-}" ]; then
@@ -29,14 +36,29 @@ git add -A; git commit -m'user request'
 
 dv-edit-cltest-create
 
-export COMMAND="$challenge"
+for loop in {1..2}; do
 
-dv-edit-cltest-improve-via-refimpl || log_error "Test suite still has errors"
+    (dv-edit -scltest-improve &&
+         dv-edit -scltest-improve &&
+         dv-edit -scltest-confirm) || (moved; exit 1)
+
+    export COMMAND="$command"
+
+    if ! dv-edit-cltest-improve-via-refimpl; then
+        log_error "Unable to get cltests to pass on refimpl"
+        moved
+        exit 1
+    fi
+done
 
 sf="$challenge_dir/starting_files"
 mkdir -p "$sf"
 cp -a cltest docs "$sf"
 
-echo "export COMMAND=\"\$PROJECT_ROOT/bin/$challenge\"" > "$sf/.env"
+echo "export COMMAND=\"\$PROJECT_ROOT/bin/$command\"
+# or whatever suits the language and file layout" > "$sf/.env"
+
 
 log_success "$sf set up"
+
+moved

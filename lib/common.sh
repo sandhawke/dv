@@ -22,40 +22,45 @@ BLUE='\033[1;96m'     # really cyan
 GRAY='\033[90m'       
 NC='\033[0m'          # No Color
 
+status_file="${DV_STATUS_FILE:-}"
 write () {
     if [ -n "${DV_LOGFILE:-}" ]; then
         mkdir -p "$(dirname "$DV_LOGFILE")"
         echo "$(date -u -Ins)" "$@" >> "$DV_LOGFILE"
     fi
+    if [[ -n "$status_file" && -f "$status_file" ]]; then
+        echo status_file $status_file "$@" >&2 
+        echo "$@" > "$status_file"
+    fi
 }
 
 log_error() {
-    write "$cmd ERROR $*"
+    write "$cmd" ERROR "$@"
     test -n "${DV_SILENT:-}" && return
     echo -e "${RED}$*${NC}" >&2
 }
 
 log_warning() {
-    write "$cmd WARNING $*"
+    write "$cmd" WARNING "$@"
     test -n "${DV_SILENT:-}" && return
     echo -e "${YELLOW}$*${NC}" >&2
 }
 
 log_info() {
-    write "$cmd INFO $*"
+    write "$cmd" INFO "$@"
     test -n "${DV_SILENT:-}" && return
     echo -e "${BLUE}$*${NC}" >&2
 }
 
 log_success() {
-    write "$cmd SUCCESS $*"
+    write "$cmd" SUCCESS "$@"
     test -n "${DV_SILENT:-}" && return
     echo -e "${GREEN}$*${NC}" >&2
 }
 
 log_debug() {
     # default on/off ???
-    write "$cmd DEBUG $*"
+    write "$cmd" DEBUG "$@"
     test -n "${DV_SILENT:-}" && return
     echo -e "${GRAY}[DEBUG] $*${NC}" >&2
 }
@@ -79,4 +84,11 @@ info() {
 success() {
     log_warning "The 'success' function is deprecated. Please use 'log_success' instead."
     log_success "$@"
+}
+
+mkdir_for_files() {
+    for file in "$@"; do
+        dir="$(dirname "$file")"
+        mkdir -p "$dir"
+    done
 }

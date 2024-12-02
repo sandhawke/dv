@@ -1,0 +1,10 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+log_info null sequence sleeping for 10s
+sleep 10
+log_info null sequence sleeping for 1s
+sleep 1
+log_info null sequence done
+
+

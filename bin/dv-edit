@@ -259,6 +259,7 @@ fi
 c2+=("$out2")
 dv-show-arguments "${c2[@]}" > "$log/arguments-for-unpackmime"
 
+log_info "unpacking $(wc --bytes < "$out2") byte file"
 unpackmime "${c2[@]}" | tee "$log/unpack-stdout.txt"
 
 dv-patch-runner
@@ -273,14 +274,6 @@ if [ ! -f "$commit_message_file" ]; then
     fi
 fi
 
-echo "
-
-Prompt used to generate this commit
-===================================
-
-$prompt
-" >> $commit_message_file
-    
 if [ -d _from_developer ]; then
     cp -a _from_developer "$log"
 fi
@@ -298,13 +291,23 @@ $(fmt -s _pre_mime)${NC}
 "
     echo "
 
-Explanation Text From AI
-========================
+Additional explanation from AI 
+==============================
 
 $(< _pre_mime)
 " >> $commit_message_file
     mv _pre_mime "$log"
 fi
+
+echo "
+
+General instructions given to AI
+================================
+
+$prompt
+" >> $commit_message_file
+
+# add software, tokens, model, etc?   get llpipe to save these somewhere?kill
 
 if [[ -f _pre_mime ]]; then
     echo _pre_mime still exists here after it should have just been moved
@@ -321,6 +324,9 @@ $(< _from_developer/error)${NC}
     log_warning "Skipping 'dv-commit'. Check git state."
     exit 1
 fi
+
+# is there a way to signal back that changes were made?  stdout like
+# with dv-test?
 
 if dv-settings --check auto-commit=true; then
     dv-commit

@@ -1,46 +1,40 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
-keys="chmod find head od sort tee touch tr uniq wc"
-samples=2
+group="${1-}"
+samples=${DV_SAMPLES:-1}
 
-# try this!
-#keys="packmime"
-#samples=30
+if [[ -z "$group" ]]; then
+    echo "Select group: $(cd $(dv-path challenges); echo *)"
+    exit 1
+fi
+
+keys=$(cd "$(dv-path challenges/$group)"; echo *)
 
 cd "$(dv-cell-create self-test)"
-stid=$(basename "$PWD")
 
-mkdir logs
-mkdir done
-mkdir running
+mkdir -p status
 for sample in $(seq 1 $samples); do
     for key in $keys; do
         id=${key}_$sample
-        outfile="logs/$id"
-        running="running/$id"
-        done="done/$id"
-        echo $outfile
-        date -uIseconds > "$running"
-        (
-            export DV_WRITE_CELL_PATH="$(mktemp)"
-            script --flush --quiet --command "dv-challenge-run '$key' '$stid'" >/dev/null 2>&1 "$outfile"
-            # echo DV_WRITE_CELL_PATH $DV_WRITE_CELL_PATH
-            cell_path="$(< "$DV_WRITE_CELL_PATH")"
-            # echo cell_path $cell_path
-            cp -a "$outfile" "$cell_path/.dv/challenge/script-log"
-            echo "$outfile" > "$cell_path/.dv/challenge/name"
-            rm "$DV_WRITE_CELL_PATH"
-            mv "$running" "$done"
-            date -uIseconds >> "$done"
-            echo -n "[$id done]"
-        ) &
-        # sleep 1 # pause for effect, used to be race condition
+        challenge="$group/$key"
+        status_file="$(realpath -m "status/$id")"
+        echo "spawning" > $status_file
+        dv-challenge-run-silent "$challenge" "$id" "$status_file" &
     done
 done
 
-echo "Processes spawned. Consider
-cd '$PWD'; wc -l logs/*
-cd '$PWD'; wc -l logs/*; tail -f logs/*
+for try in {1..100}; do
+    if ! grep -q spawning status/*; then break; fi
+    sleep 0.1
+done
+
+echo "All processes spawned. Consider:
+
+cd '$PWD'
+cd '$PWD' && watch -n 0.5 dv-self-test-status
+wc -l logs/*
+tail -f logs/* # might be a ton of output
+
 "
 exit 0

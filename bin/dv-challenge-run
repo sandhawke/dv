@@ -5,13 +5,16 @@ source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 : ${DV_SEQ:=dv-sequence-with-sprints}
 
 challenge=$1
+shift
+
 challenge_dir=$(dv-path challenges/$challenge)
 if [ ! -d $challenge_dir ]; then
     log_error Not found $challenge_dir
     exit 1
 fi
 
-cell="$(dv-cell-create "$challenge" "$@")"
+key="$(basename "$challenge")"
+cell="$(dv-cell-create "$key" "$@")"
 log="$cell/.dv/challenge"
 if [ -d "$log" ]; then
     log_error "Log dir $log already exists"
@@ -43,15 +46,17 @@ run="$challenge_dir/run.sh"
 if [ -f "$run" ]; then
     bash "$run" || log_warning "$run non-zero exit"
 else
-    # make this an argument ? something like the.
+    log_info "Starting $DV_SEQ"
     if $DV_SEQ; then
         date > .dv/challenge-pass
         log_success "dv-challenge-run completed successfully in $cell"
         echo "pass" > "$log/pass"
+        echo "pass" > "$log/status"
     else
         date > .dv/challenge-fail
         log_warning "dv-challenge-run failed in $cell"
         echo "fail" > "$log/fail"
+        echo "fail" > "$log/status"
     fi
 fi
 

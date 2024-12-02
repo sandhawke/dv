@@ -3,7 +3,7 @@ source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 : ${DV_TEST_FILE:=test-all.sh}
 
-log_warning dv-test running
+log_debug dv-test starting
 
 # Make sure the directory is clean now, so we can clean up
 # anything which tests leave behind in the main project directory
@@ -48,7 +48,7 @@ git clean -fd
 # Need to figure out why I have stuff around sometimes, still
 dv-git-assert-clean --message="dv-test still not clean after 'git clean -fd'"
 
-# log_warning 'dv-test done'
+log_debug dv-test done, status "$status"
 
 echo "$status"
 exit 0
