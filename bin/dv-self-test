@@ -6,13 +6,27 @@ samples=${DV_SAMPLES:-1}
 
 if [[ -z "$group" ]]; then
     echo "Select group: $(cd $(dv-path challenges); echo *)"
-    echo "Consider setting DV_SAMPLES, currently ${DV_SAMPLES}"
+    echo "Consider setting DV_SAMPLES, currently ${samples}"
     exit 1
 fi
 
 keys=$(cd "$(dv-path challenges/$group)"; echo *)
 
 cd "$(dv-cell-create self-test)"
+
+env="$(printenv | egrep "DV_|LLPIPE_" | grep -v KEY)"
+
+cat > README.md <<EOF
+This directory contains data from a dv-self-test run.
+
+Any repos built are in other cells.
+
+group=$group
+samples=$samples
+keys=$keys
+
+$env
+EOF
 
 mkdir -p status
 for sample in $(seq 1 $samples); do

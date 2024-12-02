@@ -31,6 +31,9 @@ else
     log_error "dv-challenge-run-silent: DV_WRITE_CELL_PATH=$DV_WRITE_CELL_PATH still empty"
 fi
 
+mkdir -p cell_path
+echo "$cell_path" > "cell_path/$id"
+
 echo "$base" > "$cell_path/.dv/challenge/parent"
 # echo cell_path $cell_path
 cp -a "$outfile" "$cell_path/.dv/challenge/script-log"
@@ -41,6 +44,10 @@ mv "$running" "$done_file"
 date -uIseconds >> "$done_file"
 
 # should we add color?
-echo "$(<"$cell_path/.dv/challenge/status") - done in $cell_path" > "$DV_STATUS_FILE"
+status='error'
+if [[ -f "$cell_path/.dv/challenge/status" ]]; then
+    status="$(<"$cell_path/.dv/challenge/status")"
+fi
+echo "$status - done in $cell_path" > "$DV_STATUS_FILE"
 
 # echo -n "[$id done]"

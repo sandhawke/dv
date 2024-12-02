@@ -36,6 +36,7 @@ ask=false
 
 function use_saved_prompt() {
     prompt="$(dv-prompt-select "$1")"
+    log_info "Using saved prompt '$1'"
 }
 
 function use_text_prompt() {
@@ -269,8 +270,9 @@ dv-patch-runner
 
 if [ ! -f "$commit_message_file" ]; then
     if [[ -f commit_message ]]; then
-        log_warn 'AI put commit_message in the wrong place, moving'
-        mv commit_message $commit_message_file
+        log_warning 'AI put commit_message in the wrong place, moving'
+        mkdir_for_files "$commit_message_file"
+        mv commit_message "$commit_message_file"
     else
         mkdir -p "$(dirname "$commit_message_file")"
         echo "AI generation failed to produce commit message" > $commit_message_file
@@ -318,14 +320,12 @@ if [[ -f _pre_mime ]]; then
 fi
 
 if [[ -f _from_developer/error ]]; then
-    log_error "The AI signalled an error, halting."
+    log_warning "The AI signalled an error, but we will continue since it cries wolf a lot."
     echo -e "
 ================ AI Error ================${YELLOW}
 $(< _from_developer/error)${NC}
 ==========================================
 "
-    log_warning "Skipping 'dv-commit'. Check git state."
-    exit 1
 fi
 
 # is there a way to signal back that changes were made?  stdout like

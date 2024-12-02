@@ -29,7 +29,9 @@ write () {
         echo "$(date -u -Ins)" "$@" >> "$DV_LOGFILE"
     fi
     if [[ -n "$status_file" && -f "$status_file" ]]; then
-        echo "$@" > "$status_file"
+        edits=$(git log --oneline | wc -l)
+        # would be nice to have a USD LLM charge total to include
+        echo "@$edits" "$@" '--' "$PWD" > "$status_file"
     fi
 }
 
@@ -43,6 +45,10 @@ log_warning() {
     write "$cmd" WARNING "$@"
     test -n "${DV_SILENT:-}" && return
     echo -e "${YELLOW}$*${NC}" >&2
+}
+
+log_warn() {
+    log_warning "$@"
 }
 
 log_info() {

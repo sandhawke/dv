@@ -47,7 +47,8 @@ if [ -f "$run" ]; then
     bash "$run" || log_warning "$run non-zero exit"
 else
     log_info "Starting $DV_SEQ"
-    if $DV_SEQ; then
+    $DV_SEQ
+    if [[ $(dv-test) = 'pass' ]]; then
         date > .dv/challenge-pass
         log_success "dv-challenge-run completed successfully in $cell"
         echo "pass" > "$log/pass"
@@ -69,6 +70,11 @@ rsync --backup --backup-dir="$changed_files" . "$cell"
 if [ -d "$changed_files" ]; then
     log_error "Challenger modified challenge files. Mods in $changed_files"
     echo "Cheated, modified $(ls "$changed_files")" > "$log/cheated"
+
+    date > .dv/challenge-fail
+    log_warning "dv-challenge-run failed BY CHEATING in $cell"
+    echo "fail" > "$log/fail"
+    echo "fail" > "$log/status"
     exit 1
 fi
 
