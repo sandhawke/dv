@@ -18,7 +18,7 @@ if [ ! -d "$prev_dir" ]; then
     exit 0
 fi
 prev_passed=($(cd "$prev_dir" && ls)) 
-log_debug prev_passed $prev_passed
+log_debug prev_passed "${prev_passed[@]}"
 
 now_dir=".dv/cltest/latest/passing_tests"
 rm -rf "$now_dir"
