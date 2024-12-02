@@ -18,8 +18,12 @@ while true; do
         log_error "Too many debug loops ($total)"
         exit 0 # not a fatal error
     fi
-    
-    if [[ $(dv-test) = 'pass' ]]; then
+
+    t="$(dv-test)"
+    log_debug "debug loop, test output is <<<$t>>>"
+    if [[ "$t" = pass ]]; then
+        log_info quick exit from debug loop
+        exit 0
         ((passing++)) || true
         log_info passing $passing times
         if [ $passing -gt 0 ]; then

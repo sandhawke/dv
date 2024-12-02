@@ -17,7 +17,7 @@ if [ ! -d "$prev_dir" ]; then
     log_debug 'no results saved for previous commit, assuming no regression'
     exit 0
 fi
-prev_passed=($(cd "$prev_dir" && echo *)) 
+prev_passed=($(cd "$prev_dir" && ls)) 
 log_debug prev_passed $prev_passed
 
 now_dir=".dv/cltest/latest/passing_tests"

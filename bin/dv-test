@@ -32,17 +32,23 @@ function dump () {
 
 log_debug "Running ${DV_TEST_FILE} in '$PWD' timeout $DV_TIMEOUT"
 echo "### [dv-test] Running 'bash ${DV_TEST_FILE}' with timeout of $DV_TIMEOUT seconds" >> $out/log.txt
-if ! timeout --verbose $DV_TIMEOUT bash ${DV_TEST_FILE} 2>&1 | tee -a $out/log.txt; then
-    # dump
-    echo "### [dv-test] ${DV_TEST_FILE} FAILED exit status $?" >> $out/log.txt
-    status=fail
-else
-    # dump
+# redirection nightmare - we'd like to stream to the user, and we'd
+# like to mix stderr into the same stream for the AI, but doing either
+# of those breaks things.
+if (timeout --verbose $DV_TIMEOUT bash ${DV_TEST_FILE} 2>$out/err.txt >> $out/log.txt); then
+    log_debug "Test complete, passed"
+    dump
     echo "${DV_TEST_FILE} exit status 0 -- ALL TESTS PASSED!" >> $out/log.txt
     status=pass
+else
+    log_debug "Test complete, failed"
+    dump
+    echo "### [dv-test] ${DV_TEST_FILE} FAILED exit status $?" >> $out/log.txt
+    status=fail
 fi
 
 # Clean up anything which got added
+git restore .
 git clean -fd
 
 # Need to figure out why I have stuff around sometimes, still
