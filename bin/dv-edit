@@ -17,7 +17,10 @@ changes with `git diff` and undo them with `git reset --hard HEAD`.
 
 Options:
   --help           Show this help message and exit
-  --prompt=|-p     set the prompt, defaults to use DV_PROMPT if set
+  -sNAME           Use the saved prompt named NAME
+  -tTEXT           Use TEXT as a prompt
+  --prompt=|-p     Like -t if it includes a space, -s otherwise
+  -S/-P/-T         The same as -s/-p/-t but for the system prompt
   [any unpackmime option, like --force]
   [any packmime option, like --ignore]
 
@@ -51,7 +54,17 @@ function use_auto_prompt() {
         use_saved_prompt "$key"
     fi
 }
-    
+
+function concatenate_to_system_prompt() {
+    local new_prompt="$1"
+    if [ -z "${LLPIPE_SYSTEM_PROMPT:-}" ]; then
+        export LLPIPE_SYSTEM_PROMPT="$new_prompt"
+    else
+        export LLPIPE_SYSTEM_PROMPT="$LLPIPE_SYSTEM_PROMPT
+
+$new_prompt"
+    fi
+}
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -70,29 +83,41 @@ while [[ $# -gt 0 ]]; do
             use_auto_prompt "$(cut <<<"$1" -c 3-)"
             shift
             ;;
+        -P*)
+            concatenate_to_system_prompt "$(use_auto_prompt "$(cut <<<"$1" -c 3-)")"
+            shift
+            ;;
         -s*)
             use_saved_prompt "$(cut <<<"$1" -c 3-)"
+            shift
+            ;;
+        -S*)
+            concatenate_to_system_prompt "$(use_saved_prompt "$(cut <<<"$1" -c 3-)")"
             shift
             ;;
         -t*)
             use_text_prompt "$(cut <<<"$1" -c 3-)"
             shift
             ;;
+        -T*)
+            concatenate_to_system_prompt "$(cut <<<"$1" -c 3-)"
+            shift
+            ;;
         --force)
             # unpackmime flag, but we also want the flag for checking
             force=true
-            c2+=("$1)
+            c2+=("$1")
             shift
             ;;
         --patch|--preserve|--dryrun|--exclude-from)
             # unpackmime args
-            c2+=("$1)
+            c2+=("$1")
             shift
             ;;
         --use-ignore-file)
             # both args
-            c1+=("$1)
-            c2+=("$1)
+            c1+=("$1")
+            c2+=("$1")
             shift
             ;;
         *)
