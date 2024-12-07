@@ -56,17 +56,18 @@ function use_text_prompt() {
     prompt="${prompt}$1"
 }
 
-function use_auto_prompt() {
+function auto_prompt_text() {
     local key="$1"
     if [[ $key =~ ' ' ]]; then
-        use_text_prompt "$key"
+        dv-prompt-select "$1"
     else
-        use_saved_prompt "$key"
+        echo $1
     fi
 }
 
 function concatenate_to_system_prompt() {
     local new_prompt="$1"
+    log_debug "Adding to system prompt, text '$(echo "$new_prompt" | cut -c 1-30)'..."
     if [ -z "${LLPIPE_SYSTEM_PROMPT:-}" ]; then
         export LLPIPE_SYSTEM_PROMPT="$new_prompt"
     else
@@ -90,27 +91,33 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -p*)
-            use_auto_prompt "$(cut <<<"$1" -c 3-)"
+            key="$(cut <<<"$1" -c 3-)"
+            use_text_prompt "$(auto_prompt_text "$key")"
             shift
             ;;
         -P*)
-            concatenate_to_system_prompt "$(use_auto_prompt "$(cut <<<"$1" -c 3-)")"
+            key="$(cut <<<"$1" -c 3-)"
+            concatenate_to_system_prompt "$(auto_prompt_text "$key")"
             shift
             ;;
         -s*)
-            use_saved_prompt "$(cut <<<"$1" -c 3-)"
+            key="$(cut <<<"$1" -c 3-)"
+            use_saved_prompt "$(key)"
             shift
             ;;
         -S*)
-            concatenate_to_system_prompt "$(use_saved_prompt "$(cut <<<"$1" -c 3-)")"
+            key="$(cut <<<"$1" -c 3-)"
+            concatenate_to_system_prompt "$(dv-prompt-select "$key")"
             shift
             ;;
         -t*)
-            use_text_prompt "$(cut <<<"$1" -c 3-)"
+            key="$(cut <<<"$1" -c 3-)"
+            use_text_prompt "$key"
             shift
             ;;
         -T*)
-            concatenate_to_system_prompt "$(cut <<<"$1" -c 3-)"
+            key="$(cut <<<"$1" -c 3-)"
+            concatenate_to_system_prompt "$key"
             shift
             ;;
         --force)
@@ -181,8 +188,11 @@ if [ -n "$prompt" ]; then
     add_prompt "General Instructions" "$prompt"
     echo "$prompt" > "$log/prompt.md"
 else
-    log_error "Missing prompt. Use --prompt/-p/-s/-t or DV_PROMPT or dv-edit-*"
-    exit 1
+    if [[ -z "$LLPIPE_SYSTEM_PROMPT" ]]; then
+        log_error "Missing prompt. Use --prompt/-p/-s/-t/-P/-S/-T or DV_PROMPT or dv-edit-*"
+        exit 1
+    fi
+    touch "$log/prompt.md"
 fi
 
 args+=(--ignore="*~")
@@ -248,6 +258,7 @@ for try in {1..10}; do
     
     export LLPIPE_LOG_RESPONSE="$log/http-response-$try.txt"
     # echo BEFORE "LLPIPE_LOG_RESPONSE='$LLPIPE_LOG_RESPONSE' llpipe < '$infile' | tee '$outfile'"
+    echo "${LLPIPE_SYSTEM_PROMPT-}" > "$log/system_prompt"
 
     # should be instead handled with LLPIPE_SHOW
     if [ -n "${DV_VERBOSE:-}" ]; then
