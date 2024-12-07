@@ -37,13 +37,23 @@ force=false
 prompt="${DV_PROMPT:-}"
 ask=false
 
+function prompt_divide() {
+    if [[ -n "$prompt" ]]; then
+        prompt="$prompt
+
+"
+    fi
+}
+
 function use_saved_prompt() {
-    prompt="$(dv-prompt-select "$1")"
+    prompt_divide
+    prompt="${prompt}$(dv-prompt-select "$1")"
     log_info "Using saved prompt '$1'"
 }
 
 function use_text_prompt() {
-    prompt="$1"
+    prompt_divide
+    prompt="${prompt}$1"
 }
 
 function use_auto_prompt() {
@@ -249,7 +259,7 @@ for try in {1..10}; do
     if [ "$ask" = 'true' ]; then
         log_info "Using 'ask' mode, just outputing response"
         echo -e "
-============ ==== AI Response ================${GREEN}
+================ AI Response ================${GREEN}
 $(fmt -s $outfile)${NC}
 =============================================
 "
