@@ -1,0 +1,51 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+# Process a template file with full bash expansion capabilities
+process_template() {
+    local template="$1"
+    local output="$2"
+    local tmp_script
+    
+    # Create a temporary script that will do the expansions
+    tmp_script=$(mktemp)
+    trap 'rm -f "$tmp_script"' EXIT
+    
+    # Convert template into echo statements with proper escaping
+    # This maintains quotes and spaces while allowing full parameter expansion
+    {
+        echo '#!/bin/bash'
+        echo 'cat << EOF'
+        cat "$template"
+        echo 'EOF'
+    } > "$tmp_script"
+    
+    # Make it executable
+    chmod +x "$tmp_script"
+    
+    # Execute the script, redirecting output to specified file or stdout
+    if [ -n "$output" ]; then
+        "$tmp_script" > "$output"
+    else
+        "$tmp_script"
+    fi
+}
+
+# Usage example:
+# cat > template.txt << 'EOF'
+# Hello ${NAME+ $NAME}${NAME:-stranger}!
+# Current directory contents: $(ls)
+# Config file contents: $(< config.txt)
+# EOF
+#
+# NAME="Bob" process_template template.txt output.txt
+
+# If script is being executed directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+        echo "Usage: $0 template_file [output_file]" >&2
+        exit 1
+    fi
+    
+    process_template "$1" "${2:-}"
+fi
