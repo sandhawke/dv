@@ -1,5 +1,4 @@
 #!/bin/bash
-source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
 
 # Process a template file with full bash expansion capabilities
 process_template() {
@@ -12,12 +11,15 @@ process_template() {
     trap 'rm -f "$tmp_script"' EXIT
     
     # Convert template into echo statements with proper escaping
-    # This maintains quotes and spaces while allowing full parameter expansion
     {
         echo '#!/bin/bash'
+        # Clear environment except DV_* variables
+        echo 'export $(env | grep "^DV_" | xargs)'
+        echo 'exec env -i $(env | grep "^DV_" | xargs) bash << "INNEREOF"'
         echo 'cat << EOF'
         cat "$template"
         echo 'EOF'
+        echo 'INNEREOF'
     } > "$tmp_script"
     
     # Make it executable
@@ -32,13 +34,14 @@ process_template() {
 }
 
 # Usage example:
+# export DV_NAME="Bob"
+# export SOME_OTHER_VAR="test"
 # cat > template.txt << 'EOF'
-# Hello ${NAME+ $NAME}${NAME:-stranger}!
-# Current directory contents: $(ls)
-# Config file contents: $(< config.txt)
+# Hello ${DV_NAME}!
+# Other var: ${SOME_OTHER_VAR:-not available}
 # EOF
 #
-# NAME="Bob" process_template template.txt output.txt
+# process_template template.txt output.txt
 
 # If script is being executed directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

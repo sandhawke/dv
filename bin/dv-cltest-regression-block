@@ -50,12 +50,14 @@ if [ -f _from_developer/commit_message ]; then
     message="$(< _from_developer/commit_message)"
 fi
 
-log_debug "doing git-clean to drop regression, writing note"
+log_debug "doing git-clean to drop regression"
 git restore .
 git clean -fd
 
-note="$(dv-path-create team-notes regression)"
-cat > "$note" << _END
+# Yeah, maybe don't write note.
+if false; then
+    note="$(dv-path-create team-notes regression)"
+    cat > "$note" << _END
 The following change was attempted, but it caused a regression on cltests. Specifically these tests stopped working: ${regress[*]}
 
 The changes were not accepted, due to this regression. Let's try to avoid repeating whatever mistakes in this change caused the regression.
@@ -71,8 +73,10 @@ $message
 $details
 _END
 
-mkdir -p _from_developer
-echo 'Add note about attempted regression' > _from_developer/commit_message 
+    mkdir -p _from_developer
+    echo 'Add note about attempted regression' > _from_developer/commit_message 
+    
+    log_debug "created '$note'"
+fi
 
-log_debug "created '$note'"
 exit 0
