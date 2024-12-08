@@ -18,14 +18,13 @@ echo "# used by dv but not good to store in repo
 .dv
 _from_developer
 _to_developer
-
-# hack for dv, because this changes in places where it's hard to commit
-package-lock.json
+# shout out to emacs users
+*~
 " >> .gitignore
 
 mkdir -p .dv
 mkdir docs || true
-mkdir notes || true
+mkdir team-notes || true
 
 git add -A
 git commit --quiet -m'dv-init'

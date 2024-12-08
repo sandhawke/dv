@@ -9,7 +9,9 @@ You will also see source code, test cases, and test results. There may also be o
 
 Please examine these carefully and write a file for team-notes which describes how the team did.
 
-Please also add a line to the end of team-notes/sprint-summaries.csv (creating it if it's missing) with one line per sprint, four fields, "id", "grade", "goal", "result". Keep the goal and result under about ten words.
+Please also add a line to the end of team-notes/sprint-summaries.csv (creating it if it's missing) with one line per sprint, five fields, "id", "grade", "pct-done", "goal", "result". Keep the goal and result under about ten words.
+
+In the "pct-done" done field, please give your best estimate of what percentage done the project is. If everything is implemented, tested, and working perfectly, puy 100.
 
 Grades are:
 * A - all goals accomplished, no need for improvement

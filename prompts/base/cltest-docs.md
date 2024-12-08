@@ -7,23 +7,23 @@ Features of cltest:
 * Simple system, easy to customize
 * Tests can be run independently with simple scaffolding, or using dv-cltest command
 
-Tests in cltest are bash scripts. By convention, they have names matching `cltest/*.sh` or, if grouping is useful, `cltest/*/*.sh`.
+Tests in cltest are bash scripts. By convention, they have names matching `cltest/*.sh or `cltest/*/*.sh` if grouping is useful for clarity.
+
+Tests can be taggeds with the id of the coding sprint during which they are first intended to be used. They will be automatically skipped during earlier sprints. The tagging is done like this (assuming a sprint with the id "sprint-37"):
+
+```bash
+# cltest sprint: sprint-37
+```
+
+Tests without a sprint tag are considered active during all sprints.
 
 Each cltest script should:
+* assume bash is has '-e' set, and watch for non-zero exit codes
 * assume it's running in a new, empty directory
 * assume $TMP is defined as the pathname of another new empty directory
 * assume $COMMAND is defined, and use it to run the software being tested
 * assume $PROJECT_ROOT is set as the top directory for the project, eg where .gitignore is
-* start with these two lines:
-```bash
-#!/bin/bash
-eval $CLTEST_SETUP
-```
 * use "assert" at least once, providing "true" bash expressions if the test is passing (see examples) 
-* end with this line:
-```bash
-end_of_test
-```
 * generally look like what a user might type at a command line, except for using $COMMAND instead of the name of the program.
 * generally put input and output in files, rather than shell variables
 * leave any files in place, for diagnosis, rather than cleaning up
@@ -38,14 +38,9 @@ Each one properly assumes COMMAND is set to the proper string to execute the sys
 #### Testing `date`
 
 ```bash
-#!/bin/bash
-eval $CLTEST_SETUP
-
 $COMMAND -uIseconds > out
 sed 's/[0-9]/x/g' < out > masked
 assert [ "$(<masked)" = 'xxxx-xx-xx Txx:xx:xx+xx:xx' ]
-
-end_of_test
 ```
 
 Note how this leaves state in files, so if there were a problem, it would be largely visible from looking at the files, as we want.
@@ -53,9 +48,6 @@ Note how this leaves state in files, so if there were a problem, it would be lar
 #### Testing a C compiler
 
 ```bash
-#!/bin/bash
-eval $CLTEST_SETUP
-
 cat <<'_END' > hello.c
 #include <stdio.h>
 
@@ -69,7 +61,6 @@ $COMMAND hello.c -o hello
 ./hello > out
 
 assert ! [ "$(< out)" = 'Hello, World!' ]
-end_of_test
 ```
 
 #### Testing `cat` with its `-n` option
@@ -77,9 +68,6 @@ end_of_test
 Of course this test also uses `cat` to help set up the test. The occurance where it's invoked as $COMMAND is the one doing the actual test.
 
 ```bash
-#!/bin/bash
-eval $CLTEST_SETUP
-
 cat <<"_END" > input
 1
 2
@@ -96,8 +84,6 @@ _END
 
 # use -b since whitespace isn't restricted in the spec
 assert diff -b expected out
-
-end_of_test
 ```
 
 #### Testing `find`
@@ -105,10 +91,6 @@ end_of_test
 This example uses our write_to_file function which creates directories when necessary, and uses echo internally, so "-e" makes escapes like \n work.
 
 ```bash
-#!/bin/bash
-eval $CLTEST_SETUP
-source $(dirname $0)/_setup.sh
-
 write_to_file test/a/b/file "Hello, World!"
 write_to_file test/c/d/file "Goodbye, World!"
 write_to_file test/e/f/file "Hello, Dolly!"
@@ -123,7 +105,6 @@ cat <<_END > expected
 _END
 
 assert diff expected out
-end_of_test
 ```
 
 #### Testing `find` in the current directory
@@ -131,9 +112,6 @@ end_of_test
 The variable TMP is provided as the pathname of another fresh working directory. This is good for files that might otherwise get in the way of tests.
 
 ```bash
-#!/bin/bash
-eval $CLTEST_SETUP
-
 write_to_file file1.txt 'file1'
 write_to_file a/file2.txt 'file2'
 
@@ -147,7 +125,6 @@ cat <<_END > "$TMP/expected"
 _END
 
 assert diff "$TMP/expected" "$TMP/out"
-end_of_test
 ```
 
 #### Generic test of the `--version` option
@@ -155,19 +132,15 @@ end_of_test
 This is a good general test to see if the command can be executed at all. It should usual be included in a test suite.
 
 ```bash
-#!/bin/bash
-eval $CLTEST_SETUP
+# If this test fails, it probably means the program probably isn't
+# running at all, perhaps due to syntax errors or incorrect config.
 
-# If it fails this, the program probably isn't running at all,
-# maybe due to syntax errors or incorrect system configuration.
-
-$COMMAND --version > out
+$COMMAND --version > out || echo 'ignoring non-zero exit'
 
 # It's not specified what the version message should looks like
 # but we can assume it will contain a decimal number.
 assert grep -E '[0-9]\.[0-9]' out
-
-end_of_test
 ```
+
 
 ----

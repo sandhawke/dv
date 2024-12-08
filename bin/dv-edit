@@ -67,8 +67,8 @@ function auto_prompt_text() {
 
 function concatenate_to_system_prompt() {
     local new_prompt="$1"
-    log_debug "Adding to system prompt, text '$(echo "$new_prompt" | cut -c 1-30)'..."
-    if [ -z "${LLPIPE_SYSTEM_PROMPT:-}" ]; then
+    log_debug "Adding to system prompt, text '$(echo "$new_prompt" | head -1 | cut -c 1-30)'..."
+    if [ -z "${LLPIPE_SYSTEM_PROMPT:=}" ]; then
         export LLPIPE_SYSTEM_PROMPT="$new_prompt"
     else
         export LLPIPE_SYSTEM_PROMPT="$LLPIPE_SYSTEM_PROMPT
@@ -188,7 +188,7 @@ if [ -n "$prompt" ]; then
     add_prompt "General Instructions" "$prompt"
     echo "$prompt" > "$log/prompt.md"
 else
-    if [[ -z "$LLPIPE_SYSTEM_PROMPT" ]]; then
+    if [[ -z "${LLPIPE_SYSTEM_PROMPT:-}" ]]; then
         log_error "Missing prompt. Use --prompt/-p/-s/-t/-P/-S/-T or DV_PROMPT or dv-edit-*"
         exit 1
     fi

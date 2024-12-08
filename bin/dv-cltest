@@ -13,6 +13,8 @@ summary_file="_to_developer/cltest-results-summary.txt"
 log=$(dv-path-create "$DVD/cltest" run)
 mkdir -p "$log"
 
+setup_code="$(dv-path lib/cltest-setup.sh)"
+
 echo "cltest running in $(pwd)"
 
 if [ -z "${COMMAND:-}" ]; then
@@ -37,10 +39,16 @@ function say () {
 KEEP_RESULTS=0
 declare -a TEST_FILES=()
 
+tag=''
+
 # needs a mode where it output the files here
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --tag=*)
+            tag="$(cut <<< "$1" -c 6-)"
+            shift
+            ;;
         --keep)
             KEEP_RESULTS=1
             shift
@@ -52,12 +60,29 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+log_debug tag match "$tag"
+
 # If no test files specified, use default glob pattern
 if [ ${#TEST_FILES[@]} -eq 0 ]; then
     # Collect all matching test files from the default glob pattern
     while IFS= read -r -d '' file; do
-        TEST_FILES+=("$file")
-    done < <(find ./{cl,cli-,}test -maxdepth 1 -name '[a-z]*.sh' -type f -print0 2>/dev/null)
+        if [[ -n "$tag" ]]; then
+            # note that tag can AND SHOULD be 'sprint-1|sprint-2|...|sprint-n' for the current sprint n
+            if grep -qiE "^[[:space:]]*#[[:space:]]*cltest[[:space:]]+sprint[[:space:]]*:[[:space:]]*(.*[[:space:]])?${tag}([[:space:]]|$)" "$file"; then
+                log_debug "tag '$tag' found in file '$file'"
+                TEST_FILES+=("$file")
+            else
+                log_debug "tag '$tag' NOT FOUND in file '$file'"
+            fi
+        else
+            TEST_FILES+=("$file")
+        fi
+    done < <(find ./cltest -name '[a-z0-9]*.sh' -type f -print0 2>/dev/null)
+fi
+
+if [ ${#TEST_FILES[@]} -eq 0 ]; then
+    log_error "No test files found"
+    exit 1
 fi
 
 # Reset output directory
@@ -93,8 +118,12 @@ run_test() {
     local result_dir="_to_developer/cltest-results/${test_name}"
     local working_dir="${result_dir}/working_directory"
     local tmp_dir="${result_dir}/tmp_directory"
-    local absolute_test_path=$(readlink -f "$test_file")
+    # local absolute_test_path=$(readlink -f "$test_file")
     local value=''
+
+    # Rewrite file!
+    local text="$(< "$test_file")"
+    local absolute_test_path="$(write_test "$text" "$test_name")"
 
     # Create test result directory and working directory
     mkdir -p "$result_dir"
@@ -102,6 +131,8 @@ run_test() {
     mkdir -p "$tmp_dir"
     export WORKING_DIR="$working_dir"
     export TMP="$(readlink -f "$tmp_dir")"
+    export DV_CLTEST_FILENAME="$test_file"
+    export DV_CLTEST_TESTNAME="$test_name"
 
     # echo running "$absolute_test_path"
     # echo stdout going to "$PWD/$result_dir/stdout"
@@ -122,6 +153,22 @@ run_test() {
         say -e "${MEDRED}✗ ${test_name} failed, see $result_dir${NC}"
     fi
     ((total_tests++)) || true
+    log_debug rm "$absolute_test_path"
+}
+
+write_test() {
+    local body="$1"
+    local name="$2"
+    local out="$(mktemp -t cltest_XXXXXX)"
+    echo "#!/bin/bash
+source '$setup_code'
+echo 'Test \"$name\" running'
+
+$body
+
+end_of_test
+" > $out
+    echo "$out"
 }
 
 # Main execution
