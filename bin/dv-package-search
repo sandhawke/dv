@@ -1,0 +1,88 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+spec="$1"
+me=pkgsearch
+pref="${STRUCT_PREFIX:-${me}_}"
+
+start_dir="$PWD"
+
+if [[ -z "${DV_RESUME:-}" ]]; then
+    cell=$(dv-cell-create $me)
+    cd "$cell"
+
+    dv-settings auto-commit=true
+
+    echo "$spec" > docs/request.md
+    git add docs/request.md && git commit -q -m'spec passed in by caller'
+fi
+
+search_file_guide='Start the file with "#!/bin/bash", then the line "set -x" to help show which search results are from each command.
+
+Suggested search and retrieval commands:
+* npm search --searchlimit=5 --json "...search terms..."
+* npm show "...package name..." readme
+* googler --count=5 --exact --json "...search terms..."
+* wget "...url to fetch..."
+
+Other commands may work as well. It is okay to experiment.
+'
+
+for count in {1..5}; do
+    log_info "\n\npackage search count = $count\n\n"
+    
+    if [[ ! -f 'search.sh' ]]; then
+        log_info no search.sh
+        dv-edit -T'What NPM packages provide the functionality described in the attached file docs/request.md? There may be attached notes giving information about options and search that have been tried before. Please write a set of search commands to help us find the best option. Respond by attaching a bash script called "search.sh" which makes several expert searches to find out what might be available.' -T"$search_file_guide" .
+    fi
+
+    if [[ ! -f 'search-results.txt' || 'search.sh' -nt 'search-results.txt' ]]; then
+        log_info 'missing or out-of-date search-results.txt -- searching'
+        : ${DV_TIMEOUT:=60}
+        timeout --verbose $DV_TIMEOUT bash search.sh 2>&1 | tee search-results.txt
+        log_info "$(wc search*)"
+        git add search-results.txt && git commit -q -m'search results from execution of search.sh'
+    fi
+    
+    if [[ ! -f guide.md ]]; then
+        log_info no guide.md
+        # extra size of search results
+        dv-edit --maxlen=300000 -T'As an expert software engineer, consider the results provided to the given searches. Does something in these results provide what we need to address the needs expressed in docs/request.md? If so, attach a file guide.md, which consisely explains, with code samples, how to use this package to do essentially what is requested. In this case, also attach a file package-found.txt that contains just the name of the package. At the end of guide, include a brief explanation of why this package is better than alternatives, including any popularity and quality metrics you have.
+
+If these search results do not give you enough information to do that with confidence, you have two options.
+
+You may stop the search, having concluded there is no available package that meets our needs. In this case, signal this situation by explaining briefly in a file called "package-not-available.txt". In that file, show the text of requirements you have concluded will not be met by any available package, and explain how your search results show they are not likely to be available.
+
+Or, you can search again. First, explain the journey so far. What was searched for, what was found, and how do you think we could search differently to get better results? Put this story in a file with a descriptive name in team-notes. Then, write an entirely new "search.sh" file, which will be executed for you to get more results and try again.' -T"$search_file_guide" .
+    fi
+
+    if [[ -f package-not-available.txt ]]; then
+        log_info search agent giving up $PWD
+        echo "${pref}success=''"
+        echo "${pref}name=''"
+        echo "${pref}status='concluded package-not-available on round $count'"
+        echo "${pref}cell='$PWD'"
+        exit 0
+    fi
+
+    if [[ -f package-found.txt ]]; then
+        pkg=$(sanitize_id $(<package-found.txt))
+        guide_text="$(printf '%q' "$(<guide.md)")"
+        log_info "search agent found package: $pkg"
+        echo "${pref}success=true"
+        echo "${pref}name=$pkg"
+        echo "${pref}guide=$guide_text"
+        echo "${pref}cell='$PWD'"
+        exit 0
+    fi
+done
+
+log_warning 'still in search loop when limit reached'
+
+echo "${pref}success=''"
+echo "${pref}name=''"
+echo "${pref}status='still searching after round $count'"
+echo "${pref}cell='$PWD'"
+exit 0
+    
+    

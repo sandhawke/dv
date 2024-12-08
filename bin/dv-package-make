@@ -23,7 +23,7 @@ dv-implement
 function generate_guide() {
     rm -rf _to_developer
     for try in {1..4}; do
-        if [[ -f docs.guide.md ]]; then
+        if [[ -f docs/guide.md ]]; then
             cat docs/guide.md
             return
         fi

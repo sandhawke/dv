@@ -97,3 +97,7 @@ mkdir_for_files() {
         mkdir -p "$dir"
     done
 }
+
+sanitize_id() {
+    echo "$1" | sed -e 's/[^[:alnum:]_]/_/g' -e 's/^[^[:alpha:]]/_%&/'
+}

@@ -34,24 +34,19 @@ $text_of_request
     # could search and implement in parallel, then compare, but for now
     # we'll search first
 
-    export DV_EXPLAIN_IN="$state/search-result-explanation"
-    local package_name="$(dv-package-search "$text_of_request")"
-    # TODO: sanitize -- malicous package name would be very bad
-    log_debug "Found package? name='$package_name'" 
-    if [[ -n "$package_name" ]]; then
-        # this response could go in dv-package-search, but these are our
-        # request/response conventions
-        local outfile="team-notes/package-${package_name}.md"
+    eval $(STRUCT_PREFIX=s_ dv-package-search "$text_of_request")
+    if [[ -n "$s_name" ]]; then
+        local outfile="team-notes/package-${s_name}.md"
         if [[ -f "$outfile" ]]; then
             log_error "responding to package request $filename, name $outfile is already taken"
             exit 1
         fi
         cat > "$outfile" << _END
-We should use package '$package_name' from NPMJS. We should add the dependency into package.json, if it's not there, and use import statements as necessary in Javascript to make use of it where appropriate.
+We should use NPM package '$s_name'. We should add the dependency into package.json, if it's not there, and use import statements as necessary in Javascript to make use of it where appropriate.
 
 Usage Guide:
 
-$guide$trailer
+$s_guide$trailer
 _END
         rm "$filename"
         git add "$filename" "$outfile"; git commit -m'dv-package-responder using search'

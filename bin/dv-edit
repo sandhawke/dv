@@ -225,6 +225,7 @@ if [ -d _to_developer ]; then
 fi
 
 # all the passthru args, which should include paths
+# BUG: if you pass like --maxlen it wont default to .
 if [ ${#c1[@]} -eq 0 ]; then
     log_info "No paths given, defaulting to '.'"
     c1+=(.)
