@@ -1,0 +1,32 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+parent_key="$1"
+run_slug="${2:-run}"
+resume_name="${DV_STATE_RESUME_NAME:-}"
+
+parent_dir="$(dv-project-dir)/.dv/${parent_key"
+
+if [[ -z "$resume_name" ]]; then
+    dv-path-create-dir "$parent_dir" "$run_slug"
+    exit 0
+fi
+
+if [[ "$resume_name" = 'latest' ]]; then
+    DV_PROVIDE_PATH=1 dv-path-highest "$parent_dir" "$run_slug"
+    exit 0
+fi
+
+if [[ -d "$resume_name" ]]; then
+    echo "$resume_name"
+    exit 0
+fi
+
+path="$parent_dir/$resume_name"
+if [[ -d "$path" ]]; then
+    echo "$path"
+    exit 0
+fi
+
+log_error "$resume_name: not found, unable to resume"
+exit 1
