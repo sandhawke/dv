@@ -1,0 +1,89 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+spec="Agent handling package requests, using some combination of
+searching for existing packages and implementing what's needed.
+
+Likely to include some node.js ideas of what packages are, for now."
+
+state="$(dv-state package-responder)"
+log_debug "keeping state in '$state'"
+
+function main() {
+    shopt -s nullglob
+    for req in "$(dv-project-dir)/team-notes/"package-request*md; do
+        # in theory if there are multiple ones, we could run them in parallel
+        respond "$req"
+    done
+}
+
+function respond() {
+    local filename="$1"
+    local text_of_request="$(< "$filename")"
+    log_debug "Responding to package request '$filename' beginning '$(printf "%-.30s" "$text_of_request")'"
+
+    trailer="
+
+# Background
+
+This package guidance was created in response to the following package request:
+
+$text_of_request
+"
+    
+    # could search and implement in parallel, then compare, but for now
+    # we'll search first
+
+    export DV_EXPLAIN_IN="$state/search-result-explanation"
+    local package_name="$(dv-package-search "$text_of_request")"
+    # TODO: sanitize -- malicous package name would be very bad
+    log_debug "Found package? name='$package_name'" 
+    if [[ -n "$package_name" ]]; then
+        # this response could go in dv-package-search, but these are our
+        # request/response conventions
+        local outfile="team-notes/package-${package_name}.md"
+        if [[ -f "$outfile" ]]; then
+            log_error "responding to package request $filename, name $outfile is already taken"
+            exit 1
+        fi
+        cat > "$outfile" << _END
+We should use package '$package_name' from NPMJS. We should add the dependency into package.json, if it's not there, and use import statements as necessary in Javascript to make use of it where appropriate.
+
+Usage Guide:
+
+$guide$trailer
+_END
+        rm "$filename"
+        git add "$filename" "$outfile"; git commit -m'dv-package-responder using search'
+        exit 0
+    fi
+
+    log_info "unable to find suitable package, proceeding to make one"
+
+    eval $(STRUCT_PREFIX=mk_ dv-package-make "$text_of_request")
+    # sets mk_relative_path mk_absolute_path mk_guides mk_name
+    if [[ -n "$mk_name" && -n "$mk_guide" && -d "$mk_relative_path" ]]; then
+        # dv-path-create doesn't yet allow suffix like .md
+        local outfile="team-notes/package-${mk_name}.md"
+        if [[ -f "$outfile" ]]; then
+            log_error "responding to package request $filename, name $outfile is already taken"
+            exit 1
+        fi
+        cat > "$outfile" << _END
+We should import package '$mk_name' which is hosted locally at pathname '$mk_relative_path'. We should add that dependency into package.json, if it's not there, and use an import statement to import the documented functions from that relative path.
+
+Usage guide:
+
+$guide$trailer
+_END
+        rm "$filename"
+        git add "$filename" "$outfile"; git commit -m'dv-package-responder using maker'
+        exit 0
+    else
+        # it should have done an exit 1, so we shouldnt be here
+        log_error dv-package-make bad output
+        exit 1
+    fi
+}
+
+main

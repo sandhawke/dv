@@ -1,0 +1,19 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+# consider: maintain some state and skip some of these if they're
+# sufficiently done
+
+# consider: have 'improve' be more like assess, which decides if it's
+# done, in a loop.
+
+dv-edit -Scltest-create -Scltest-docs
+dv-edit -Scltest-improve -Scltest-docs
+
+dv-edit -Scode-create
+dv-edit -Scode-improve
+dv-edit -Scode-improve
+
+dv-debug-loop
+
+

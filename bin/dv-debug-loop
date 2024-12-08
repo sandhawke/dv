@@ -1,0 +1,18 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+for try in {1..10}; do
+    log_info "dv-debug-loop starting loop $try"
+    rm -rf _to_developer
+    status="$(dv-test)"
+    log_debug "dv-test output '$status'"
+    if [[ $status = "pass" ]]; then
+        log_success All current tests passing
+        exit 0
+    fi
+    log_info See test results above
+    sleep 2
+    dv-edit -Scode-fix
+done
+
+log_warning Unable to pass tests, despite using all tries

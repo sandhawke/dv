@@ -1,0 +1,56 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+spec="$1"
+me=pkgmake
+pref="${STRUCT_PREFIX:-${me}_}"
+
+start_dir="$PWD"
+cell=$(dv-cell-create $me)
+cd "$cell"
+
+dv-settings auto-commit=true
+
+# this version in node dependant in a few places. todo: fix that, by
+# extracting those places, somehow.
+dv-install node20-a
+
+echo "$spec" > docs/specification.md
+git add docs/specification.md && git commit -q -m'spec passed in by caller'
+
+dv-implement
+
+function generate_guide() {
+    rm -rf _to_developer
+    for try in {1..4}; do
+        if [[ -f docs.guide.md ]]; then
+            cat docs/guide.md
+            return
+        fi
+        # maybe trim back on what we sent?
+        dv-edit -T'Create a file docs/guide.md which consisely explains, with code samples, how to use this package to do exactly what docs/specification.md requires. Also, please double-check that package.json has an "exports" clause set up to match the usage you are recommending.'
+    done
+    log_error 'Unable to generate docs/guide.md'
+    exit 1
+}
+
+# This is a technique in shell programming for returning multiple
+# values, like a struct. It's not perfect, but it's probably better
+# than a bunch of files or a non-shell-friendly packing like JSON.
+#
+# Basically we output a bunch of variable assignments, and the caller
+# eval's that output. For a bit of control, caller specifies a prefix
+# for all those variable names.
+
+guide=$(generate_guide)
+name=$(basename "$PWD")
+absolute_path="$PWD"
+relative_path="$(realpath --relative-to="$start_dir" -m "$absolute_path")"
+cat << _EOL
+# this should be run with eval
+
+${pref}name=$(printf '%q' "$name")
+${pref}guide=$(printf '%q' "$guide")
+${pref}relative_path=$(printf '%q' "$relative_path")
+${pref}absolute_path=$(printf '%q' "$absolute_path")
+_EOL
