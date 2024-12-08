@@ -5,7 +5,7 @@ parent_key="$1"
 run_slug="${2:-run}"
 resume_name="${DV_STATE_RESUME_NAME:-}"
 
-parent_dir="$(dv-project-dir)/.dv/${parent_key"
+parent_dir="$(dv-project-dir)/.dv/${parent_key}"
 
 if [[ -z "$resume_name" ]]; then
     dv-path-create-dir "$parent_dir" "$run_slug"

@@ -6,9 +6,11 @@ slug="${2:-}"        # Optional slug prefix
 pattern=''
 highest=0
 
-if [ ! -d "$dir" ]; then
-    return 0
+if [[ ! -d "$dir" ]]; then
+    log_error "Parent dir '$dir' not found"
+    exit 1
 fi
+log_debug "$0 parent dir='$dir'"
 
 # Set up the pattern based on whether we have a slug
 if [ -n "$slug" ]; then
