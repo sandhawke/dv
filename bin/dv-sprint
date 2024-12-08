@@ -10,6 +10,17 @@ if [[ $(dv-test) = 'pass' ]]; then
     exit 0
 fi
 
+if [[ -f team-notes/plan.md ]]; then
+    if [[ -f team-notes/next-step.md ]]; then
+        echo CONTINUEING
+    else
+        log_error I see plan.md but not next-step.md
+        exit 1
+    fi
+else
+    echo starting
+fi
+
 if [ -f test-this-sprint.sh -o -f team-notes/sprint.md ]; then
     rm -f test-this-sprint.sh team-notes/sprint.md
     git add -A; git commit -q -m'clearing out sprint notes'
