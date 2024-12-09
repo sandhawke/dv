@@ -31,6 +31,8 @@ function main() {
         # in theory if there are multiple ones, we could run them in parallel
         respond "$req"
     done
+    log_debug "dv-package-responder done, wrote any status to $out"
+    exit 0
 }
 
 function respond() {
@@ -71,7 +73,7 @@ _END
         git add "$filename" || true
         git add "$outfile"
         git commit -q -m'dv-package-responder using search'
-        responded "created $outfile"
+        responded "$filename" "$outfile" "search"
         return
     fi
 

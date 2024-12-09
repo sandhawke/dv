@@ -1,0 +1,13 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+function say_stuff() {
+  echo "to stdout"
+  echo "to stderr" 1>&2
+  echo "to stdout 2"
+  echo "to stderr 2" 1>&2
+}
+
+say_stuff
+
+say_stuff 2>&1 | tee out1
