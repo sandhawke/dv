@@ -58,9 +58,9 @@ for count in {1..5}; do
     if [[ ! -f 'search-results.txt' || 'search.sh' -nt 'search-results.txt' ]]; then
         log_info 'missing or out-of-date search-results.txt -- searching'
         : ${DV_TIMEOUT:=60}
-        timeout --verbose $DV_TIMEOUT bash search.sh 2> search-stderr.txt | tee search-results.txt || true
+        ((timeout --verbose $DV_TIMEOUT bash search.sh 2>&1 || true) | tee search-results.txt) 
         log_info "$(wc search*)"
-        git add search-results.txt search-stderr.txt && git commit -q -m'search results from execution of search.sh'
+        git add search-results.txt && git commit -q -m'search results from execution of search.sh'
     fi
     
     if [[ ! -f guide.md ]]; then

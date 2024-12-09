@@ -17,7 +17,7 @@ function responded() {
     
     rm -f "$filename"
     git add "$filename" || true
-    git add "$outfile"
+    git add "$outfile" || true
     git commit -q -m"dv-package-responder using $tool"
     
     if [[ -n "$out" ]]; then
@@ -69,10 +69,6 @@ Usage Guide:
 
 $(<"$sub/guide.md")$trailer
 _END
-        rm -f "$filename"
-        git add "$filename" || true
-        git add "$outfile"
-        git commit -q -m'dv-package-responder using search'
         responded "$filename" "$outfile" "search"
         return
     fi
