@@ -252,6 +252,7 @@ rm -rf _from_developer
 log_info "llpipe starting"
 
 for try in {1..10}; do
+    export LLPIPE_COUNTER=$try # cache busting
     if [[ $try > 5 ]]; then
         log_error 'Unable to get Content-Type response from llpipe'
         exit 1

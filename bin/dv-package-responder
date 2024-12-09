@@ -8,6 +8,22 @@ Likely to include some node.js ideas of what packages are, for now."
 
 state="$(dv-state package-responder)"
 log_debug "keeping state in '$state'"
+out="${DV_OUTPUT_TO:-}"
+
+function responded() {
+    local filename="$1"
+    local outfile="$2"
+    local tool="$3"
+    
+    rm -f "$filename"
+    git add "$filename" || true
+    git add "$outfile"
+    git commit -q -m"dv-package-responder using $tool"
+    
+    if [[ -n "$out" ]]; then
+        echo "$1" >> "$out/responded"
+    fi
+}
 
 function main() {
     shopt -s nullglob
@@ -34,32 +50,41 @@ $text_of_request
     # could search and implement in parallel, then compare, but for now
     # we'll search first
 
-    eval $(STRUCT_PREFIX=s_ dv-package-search "$text_of_request")
-    if [[ -n "$s_name" ]]; then
-        local outfile="team-notes/package-${s_name}.md"
+    local sub="$state/search"
+    mkdir -p "$sub"
+    DV_OUTPUT_TO="$sub" dv-package-search "$text_of_request"
+    if [[ -f "$sub/name" ]]; then
+        local name=$(<"$sub/name")
+        local outfile="team-notes/use-package-${name}.md"
         if [[ -f "$outfile" ]]; then
             log_error "responding to package request $filename, name $outfile is already taken"
             exit 1
         fi
         cat > "$outfile" << _END
-We should use NPM package '$s_name'. We should add the dependency into package.json, if it's not there, and use import statements as necessary in Javascript to make use of it where appropriate.
+We should use NPM package '$name'. We should add the dependency into package.json, if it's not there, and use import statements as necessary in Javascript to make use of it where appropriate.
 
 Usage Guide:
 
-$s_guide$trailer
+$(<"$sub/guide.md")$trailer
 _END
-        rm "$filename"
-        git add "$filename" "$outfile"; git commit -m'dv-package-responder using search'
-        exit 0
+        rm -f "$filename"
+        git add "$filename" || true
+        git add "$outfile"
+        git commit -q -m'dv-package-responder using search'
+        responded "created $outfile"
+        return
     fi
 
     log_info "unable to find suitable package, proceeding to make one"
 
-    eval $(STRUCT_PREFIX=mk_ dv-package-make "$text_of_request")
-    # sets mk_relative_path mk_absolute_path mk_guides mk_name
-    if [[ -n "$mk_name" && -n "$mk_guide" && -d "$mk_relative_path" ]]; then
-        # dv-path-create doesn't yet allow suffix like .md
-        local outfile="team-notes/package-${mk_name}.md"
+    sub="$state/make"
+    mkdir -p "$sub"
+    DV_OUTPUT_TO="$sub" dv-package-make "$text_of_request"
+    log_debug "dv-package-make results to $sub"
+    if [[ -f "$sub/guide.md" ]]; then
+        local name=$(<"$sub/name")
+        # this might not be unique, but dv-path-create doesn't yet allow suffix like .md
+        local outfile="team-notes/use-package-${name}.md"
         if [[ -f "$outfile" ]]; then
             log_error "responding to package request $filename, name $outfile is already taken"
             exit 1
@@ -69,16 +94,18 @@ We should import package '$mk_name' which is hosted locally at pathname '$mk_rel
 
 Usage guide:
 
-$guide$trailer
+$(<"$sub/guide.md")$trailer
 _END
-        rm "$filename"
-        git add "$filename" "$outfile"; git commit -m'dv-package-responder using maker'
-        exit 0
+        responded "$filename" "$outfile" "maker"
     else
-        # it should have done an exit 1, so we shouldnt be here
-        log_error dv-package-make bad output
-        exit 1
+        cat > "$outfile" << _END
+Unfortunately, our package search and creation service reports being unable to find or create a package to meet the below request. Consider refactoring and submitting a simpler request or one which better aligns with things existing packages do.
+
+$trailer
+_END
+        responded "$filename" "$outfile" "rejection-handler"
     fi
 }
 
 main
+

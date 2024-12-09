@@ -6,6 +6,3 @@ Respond by attaching three files:
 * team-notes/current-sprint-id.txt should contain a kebab-case name for this sprint. You can use sprint-1 if nothing comes to mind.
 * team-notes/plan.md should be the overall plan, giving a rough outline of all the sprints. This can be adjusted later.
 * team-notes/next-step.md is the most important one. It will guide everyone in how proceed during this next sprint. It should clearly instruct us, telling us exactly what we need to do in this next sprint to move us along the path to completing the overall project.
-
-
-

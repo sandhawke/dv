@@ -10,7 +10,7 @@ for round in {1..15}; do
     log_info "\n\n\nSPRINT #$round\n\n\n"
     if [[ ! -f team-notes/plan.md ]]; then
         # first time through
-        dv-edit -Ssprint-plan-create docs
+        dv-edit -Ssprint-plan-create docs -Spackage-requests
                 
         dv-install node20-a
     else
@@ -18,7 +18,14 @@ for round in {1..15}; do
         dv-edit -Ssprint-eval
 
         rm -rf _to_developer/
-        dv-edit -Ssprint-plan-next
+        dv-edit -Ssprint-plan-next -Spackage-requests
+    fi
+
+    resp=$(mktemp -d)
+    DV_OUTPUT_TO="$resp" dv-package-responder
+    if [[ -f "$resp/responded" ]]; then
+        log_warning "package responder made changes; see '$resp/responded'"
+        continue
     fi
 
     dv-edit -Ssprint-cltest-create -Scltest-docs

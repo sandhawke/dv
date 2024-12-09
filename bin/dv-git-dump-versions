@@ -1,0 +1,60 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+if [ "$#" -lt 2 ]; then
+    echo "Usage: $0 <file_path> <repo_path1> [repo_path2 ...]"
+    echo "Example: $0 src/foo.txt /path/to/repo1 /path/to/repo2"
+    exit 1
+fi
+
+FILE_PATH="$1"
+shift  # Remove file_path from args, leaving only repo paths
+
+# Store original directory
+ORIGINAL_PWD="$PWD"
+
+# Process each repository
+for REPO_PATH in "$@"; do
+    # Check if repo exists
+    if [ ! -d "$REPO_PATH/.git" ]; then
+        echo "Skipping $REPO_PATH: not a git repository"
+        continue
+    fi
+
+    echo "Processing $REPO_PATH..."
+    
+    # Change to repo directory
+    cd "$REPO_PATH" || continue
+
+    # Get repository name for unique filenames
+    REPO_NAME=$(basename "$REPO_PATH")
+
+    # Get all commits that ever touched this file, including through renames
+    # First, find all possible past names of the file
+    git log --follow --name-only --pretty=format:"%H %ai" -- "$FILE_PATH" | while read -r line
+    do
+        # If line contains a commit hash (starts with hex digit), it's a commit line
+        if [[ $line =~ ^[0-9a-f] ]]; then
+            read -r commit date time zone <<< "$line"
+            # Extract the file from each commit
+            if git show "$commit:$FILE_PATH" > "$ORIGINAL_PWD/$(basename "$FILE_PATH")_${REPO_NAME}_${date}_${commit:0:7}" 2>/dev/null; then
+                echo "Extracted version from $REPO_NAME commit ${commit:0:7} ($date)"
+            else
+                # Try to find the actual filename at this commit
+                oldname=$(git show --pretty="" --name-only "$commit" | grep -v '^$' | head -n1)
+                if [ ! -z "$oldname" ]; then
+                    if git show "$commit:$oldname" > "$ORIGINAL_PWD/$(basename "$FILE_PATH")_${REPO_NAME}_${date}_${commit:0:7}" 2>/dev/null; then
+                        echo "Extracted version from $REPO_NAME commit ${commit:0:7} ($date) [old name: $oldname]"
+                    else
+                        echo "Warning: Could not extract file from $REPO_NAME commit ${commit:0:7}"
+                    fi
+                fi
+            fi
+        fi
+    done
+
+    # Return to original directory
+    cd "$ORIGINAL_PWD" || exit 1
+done
+
+echo "All versions have been extracted to $ORIGINAL_PWD"
