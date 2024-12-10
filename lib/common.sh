@@ -1,6 +1,10 @@
 set -euo pipefail
 trap 'echo "$0": non-zero exit value "$?" at lineno ${LINENO} running "${BASH_COMMAND}"' ERR
 
+# todo: change from this being sourced, where it has to be found, to it being
+# like `eval $(dv-script-intro)` where it (dv-script-intro) is just found on
+# the path like other commands.
+
 cmd=$(basename $0)
 # DV_COMMAND is the outer-most command, which is good to log, unless
 # something inside overrides it. Generally we'd like dv-prompt-* commands
@@ -100,4 +104,120 @@ mkdir_for_files() {
 
 sanitize_id() {
     echo "$1" | sed -e 's/[^[:alnum:]_-]/_/g' -e 's/^[^[:alpha:-]]/_%&/'
+}
+
+# created by https://claude.ai/chat/73cacb61-8443-4f63-b293-67e85ce028ef
+read_named_returns() {
+    local vars=()
+    local file_names=()
+    local cmd=""
+    local parsing_vars=true
+    
+    # Parse arguments into vars and cmd
+    for arg in "$@"; do
+        if [ "$arg" = "--" ]; then
+            parsing_vars=false
+            continue
+        fi
+        
+        if $parsing_vars; then
+            # Split on : if present
+            if [[ "$arg" == *:* ]]; then
+                local file_name="${arg%%:*}"
+                local var_name="${arg#*:}"
+                log_debug "Parsed compound name - file: $file_name, var: $var_name"
+                vars+=("$var_name")
+                file_names+=("$file_name")
+            else
+                log_debug "Using same name for file and var: $arg"
+                vars+=("$arg")
+                file_names+=("$arg")
+            fi
+        else
+            cmd="${cmd:+$cmd }$arg"
+        fi
+    done
+    
+    # Validate input
+    if [ ${#vars[@]} -eq 0 ] || [ -z "$cmd" ]; then
+        echo "Usage: read_named_returns var1 [var2 ...] -- command [args ...]" >&2
+        return 1
+    fi
+    
+    # Create temporary directory
+    local tmp_dir
+    tmp_dir=$(mktemp -d)
+    if [ ! -d "$tmp_dir" ]; then
+        echo "Failed to create temporary directory" >&2
+        return 1
+    fi
+    log_debug "Created temporary directory: $tmp_dir"
+    
+    # Export directory for child process
+    export NAMED_RETURNS_DIR="$tmp_dir"
+    
+    # Execute the command
+    log_debug "Executing command: $cmd"
+    eval "$cmd"
+    local cmd_status=$?
+    log_debug "Command completed with status: $cmd_status"
+    
+    # Read variables
+    local i
+    for i in "${!vars[@]}"; do
+        local var="${vars[$i]}"
+        local file_name="${file_names[$i]}"
+        local file="$tmp_dir/$file_name"
+        log_debug "Processing return value - file: $file_name, var: $var"
+        if [ -f "$file" ]; then
+            log_debug "Reading value from $file into $var"
+            # Use eval to set the variable in caller's scope
+            eval "$var"'=$(cat "$file")'
+        else
+            log_debug "File $file not found, clearing $var"
+            # Clear the variable if file doesn't exist
+            eval "$var="
+        fi
+    done
+    
+    # Clean up
+    log_debug "Removing temporary directory: $tmp_dir"
+    rm -rf "$tmp_dir"
+    
+    return $cmd_status
+}
+
+write_named_returns() {
+    # Check if NAMED_RETURNS_DIR is set
+    if [ -z "${NAMED_RETURNS_DIR:-}" ]; then
+        log_debug "NAMED_RETURNS_DIR not set, skipping write_named_returns"
+        return 0
+    fi
+    
+    log_debug "Writing named returns to directory: $NAMED_RETURNS_DIR"
+    
+    local arg
+    for arg in "$@"; do
+        # Split on : if present
+        local file_name var_name
+        if [[ "$arg" == *:* ]]; then
+            file_name="${arg%%:*}"
+            var_name="${arg#*:}"
+            log_debug "Parsed compound name - file: $file_name, var: $var_name"
+        else
+            file_name="$arg"
+            var_name="$arg"
+            log_debug "Using same name for file and var: $arg"
+        fi
+        
+        # Get the value of the variable using indirect reference
+        local value="${!var_name:-}"
+        
+        if [ -n "$value" ]; then
+            log_debug "Writing value of $var_name to $NAMED_RETURNS_DIR/$file_name"
+            printf "%s" "$value" > "$NAMED_RETURNS_DIR/$file_name"
+        else
+            log_debug "Variable $var_name is empty or unset, skipping"
+        fi
+    done
 }
