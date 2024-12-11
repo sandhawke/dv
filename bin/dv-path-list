@@ -36,43 +36,36 @@ matches_pattern() {
     local path=$1
     local pattern=$2
     
-    # Remove leading ./ and trailing /
+    # Remove leading ./ from path and pattern
     path="${path#./}"
-    path="${path%/}"
     pattern="${pattern#./}"
-    pattern="${pattern%/}"
     
-    debug "Checking if '$path' matches pattern '$pattern'"
-    
-    # If pattern ends in /, it matches directories and everything under them
-    if [[ $pattern == */ ]]; then
-        pattern="${pattern%/}"
-        [[ $path == $pattern/* ]] && return 0
-        [[ $path == $pattern ]] && return 0
-        return 1
-    fi
-    
-    # If pattern starts with /, anchor to root
+    # If pattern starts with /, anchor to start of path
     if [[ $pattern == /* ]]; then
         pattern="${pattern#/}"
-        [[ $path == $pattern ]] && return 0
+        [[ $path == "$pattern" || $path == "$pattern"/* ]] && return 0
         return 1
     fi
     
-    # If pattern contains /, match whole path component
+    # If pattern ends with /, match directories and their contents
+    if [[ $pattern == */ ]]; then
+        pattern="${pattern%/}"
+        [[ $path == "$pattern" || $path == "$pattern"/* ]] && return 0
+        return 1
+    fi
+    
+    # If pattern contains /, do exact path match
     if [[ $pattern == */* ]]; then
-        [[ $path == *$pattern* ]] && return 0
+        [[ $path == "$pattern" ]] && return 0
         return 1
     fi
     
-    # Otherwise match any path component
-    local comp
-    while [[ $path == */* ]]; do
-        comp="${path##*/}"
-        [[ $comp == $pattern ]] && return 0
-        path="${path%/*}"
+    # For simple patterns, match against path components
+    local -a path_parts
+    IFS=/ read -ra path_parts <<< "$path"
+    for part in "${path_parts[@]}"; do
+        [[ $part == $pattern ]] && return 0
     done
-    [[ $path == $pattern ]] && return 0
     return 1
 }
 
@@ -90,6 +83,55 @@ load_patterns() {
             fi
         done < "$file"
     fi
+}
+
+# Check if a file should be included in output
+should_include_file() {
+    local file=$1
+    
+    # Strip leading ./
+    file="${file#./}"
+    
+    # Check base paths
+    if [ "${#base_paths[@]}" -gt 0 ]; then
+        local in_base_path=false
+        for base in "${base_paths[@]}"; do
+            base="${base#./}"  # Strip leading ./
+            base="${base%/}"   # Strip trailing /
+            if [[ $file == "$base" || $file == "$base"/* ]]; then
+                in_base_path=true
+                break
+            fi
+        done
+        if ! $in_base_path; then
+            debug "Skipping $file (not in base paths)"
+            return 1
+        fi
+    fi
+    
+    # Check ignore patterns
+    for pattern in "${ignore_patterns[@]}"; do
+        if matches_pattern "$file" "$pattern"; then
+            debug "Ignoring $file (matches $pattern)"
+            return 1
+        fi
+    done
+    
+    # Check include patterns
+    if [ "${#include_patterns[@]}" -gt 0 ]; then
+        for pattern in "${include_patterns[@]}"; do
+            if matches_pattern "$file" "$pattern"; then
+                debug "Including $file (matches $pattern)"
+                return 0
+            fi
+        done
+        debug "Skipping $file (no matching include pattern)"
+        return 1
+    fi
+    
+    # Include by default if no include patterns
+    debug "Including $file (no include patterns)"
+    return 0
 }
 
 # Initialize arrays
@@ -122,67 +164,32 @@ while [[ $# -gt 0 ]]; do
             usage
             ;;
         *)
-            # Add trailing slash to directories for consistent handling
-            if [ -d "$1" ]; then
-                base_paths+=("${1%/}/")
-            else
-                base_paths+=("$1")
-            fi
+            base_paths+=("$1")
             shift
             ;;
     esac
 done
 
+# Enable extended globbing
+shopt -s extglob nullglob
+
 # Process files
-process_files() {
-    local files=""
-    
-    # Get initial file list
+{
     if [ "${#base_paths[@]}" -gt 0 ]; then
         for path in "${base_paths[@]}"; do
             if [ -f "$path" ]; then
                 echo "$path"
             elif [ -d "$path" ]; then
-                find "$path" -type f | sed 's#^\./##'
+                find "$path" -type f
             else
                 echo "Warning: '$path' not found" >&2
             fi
         done
     else
-        find . -type f | sed 's#^\./##'
-    fi | while IFS= read -r file; do
-        # Skip if file matches any ignore pattern
-        local ignore=false
-        for pattern in "${ignore_patterns[@]}"; do
-            if matches_pattern "$file" "$pattern"; then
-                debug "File '$file' matches ignore pattern '$pattern'"
-                ignore=true
-                break
-            fi
-        done
-        
-        if $ignore; then
-            debug "Ignoring file: $file"
-            continue
-        fi
-        
-        # Include file if no include patterns or if it matches any include pattern
-        if [ "${#include_patterns[@]}" -eq 0 ]; then
-            debug "Including file (no include patterns): $file"
-            echo "$file"
-        else
-            for pattern in "${include_patterns[@]}"; do
-                if matches_pattern "$file" "$pattern"; then
-                    debug "Including file (matches $pattern): $file"
-                    echo "$file"
-                    break
-                fi
-            done
-        fi
-    done | sort
-}
-
-# Enable extended globbing
-shopt -s extglob nullglob
-
-process_files
+        find . -type f
+    fi
+} | while IFS= read -r file; do
+    if should_include_file "$file"; then
+        echo "${file#./}"
+    fi
+done | sort
