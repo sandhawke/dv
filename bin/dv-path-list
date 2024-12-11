@@ -1,6 +1,13 @@
 #!/bin/bash
 source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-#!/bin/bash
 # from https://claude.ai/chat/5543dc1b-4459-433d-b147-fb30d036d11a
+#!/bin/bash
+
+DEBUG=${DEBUG:-}
+
+debug() {
+    [[ -n "$DEBUG" ]] && echo "DEBUG: $*" >&2
+}
 
 usage() {
     echo "Usage: $0 [files/directories] [--include=pattern] [--ignore=pattern]..."
@@ -24,39 +31,49 @@ usage() {
     exit 1
 }
 
-# Convert gitignore pattern to regex
-pattern_to_regex() {
-    local pattern=$1
+# Check if a path matches a pattern
+matches_pattern() {
+    local path=$1
+    local pattern=$2
     
-    # Skip empty lines and comments
-    [[ -z "$pattern" || "$pattern" == \#* ]] && return
+    # Remove leading ./ and trailing /
+    path="${path#./}"
+    path="${path%/}"
+    pattern="${pattern#./}"
+    pattern="${pattern%/}"
     
-    # Clean pattern of carriage returns
-    pattern="${pattern//[$'\r']/}"
+    debug "Checking if '$path' matches pattern '$pattern'"
     
-    # Build the regex pattern piece by piece
-    local regex=""
-    
-    # Handle leading pattern
-    if [[ $pattern == /* ]]; then
-        regex="^"
-        pattern="${pattern#/}"
-    else
-        regex="^.*/"
+    # If pattern ends in /, it matches directories and everything under them
+    if [[ $pattern == */ ]]; then
+        pattern="${pattern%/}"
+        [[ $path == $pattern/* ]] && return 0
+        [[ $path == $pattern ]] && return 0
+        return 1
     fi
     
-    # Handle the main pattern, special characters first
-    pattern="${pattern//./\\.}"   # Escape dots
-    pattern="${pattern//\*\*/.*}" # Convert ** to .*
-    pattern="${pattern//\*/[^/]*}" # Convert * to [^/]*
+    # If pattern starts with /, anchor to root
+    if [[ $pattern == /* ]]; then
+        pattern="${pattern#/}"
+        [[ $path == $pattern ]] && return 0
+        return 1
+    fi
     
-    # Add the pattern to regex
-    regex="${regex}${pattern}"
+    # If pattern contains /, match whole path component
+    if [[ $pattern == */* ]]; then
+        [[ $path == *$pattern* ]] && return 0
+        return 1
+    fi
     
-    # Add end anchor
-    regex="${regex}$"
-    
-    echo "$regex"
+    # Otherwise match any path component
+    local comp
+    while [[ $path == */* ]]; do
+        comp="${path##*/}"
+        [[ $comp == $pattern ]] && return 0
+        path="${path%/*}"
+    done
+    [[ $path == $pattern ]] && return 0
+    return 1
 }
 
 # Load patterns from a file
@@ -65,10 +82,11 @@ load_patterns() {
     local -n patterns=$2
     
     if [[ -f "$file" ]]; then
+        debug "Loading patterns from $file"
         while IFS= read -r pattern; do
             if [[ -n "$pattern" && "$pattern" != \#* ]]; then
-                local regex=$(pattern_to_regex "$pattern")
-                [[ -n "$regex" ]] && patterns+=("$regex")
+                patterns+=("$pattern")
+                debug "Added pattern: $pattern"
             fi
         done < "$file"
     fi
@@ -88,14 +106,12 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --include=*)
             pattern="${1#*=}"
-            regex=$(pattern_to_regex "$pattern")
-            [[ -n "$regex" ]] && include_patterns+=("$regex")
+            include_patterns+=("$pattern")
             shift
             ;;
         --ignore=*)
             pattern="${1#*=}"
-            regex=$(pattern_to_regex "$pattern")
-            [[ -n "$regex" ]] && ignore_patterns+=("$regex")
+            ignore_patterns+=("$pattern")
             shift
             ;;
         --help|-h)
@@ -106,58 +122,67 @@ while [[ $# -gt 0 ]]; do
             usage
             ;;
         *)
-            base_paths+=("$1")
+            # Add trailing slash to directories for consistent handling
+            if [ -d "$1" ]; then
+                base_paths+=("${1%/}/")
+            else
+                base_paths+=("$1")
+            fi
             shift
             ;;
     esac
 done
 
-# Function to check if a file should be ignored
-should_ignore() {
-    local file=$1
-    for pattern in "${ignore_patterns[@]}"; do
-        if [[ "$file" =~ $pattern ]]; then
-            return 0
-        fi
-    done
-    return 1
-}
-
 # Process files
-if [ "${#base_paths[@]}" -gt 0 ]; then
-    for path in "${base_paths[@]}"; do
-        if [ -f "$path" ]; then
-            if ! should_ignore "$path"; then
+process_files() {
+    local files=""
+    
+    # Get initial file list
+    if [ "${#base_paths[@]}" -gt 0 ]; then
+        for path in "${base_paths[@]}"; do
+            if [ -f "$path" ]; then
                 echo "$path"
+            elif [ -d "$path" ]; then
+                find "$path" -type f | sed 's#^\./##'
+            else
+                echo "Warning: '$path' not found" >&2
             fi
-        elif [ -d "$path" ]; then
-            while IFS= read -r -d '' file; do
-                # Remove leading ./
-                file="${file#./}"
-                if ! should_ignore "$file"; then
-                    echo "$file"
-                fi
-            done < <(find "$path" -type f -print0)
-        else
-            echo "Warning: '$path' not found" >&2
-        fi
-    done
-else
-    while IFS= read -r -d '' file; do
-        file="${file#./}"
-        if ! should_ignore "$file"; then
-            echo "$file"
-        fi
-    done < <(find . -type f -print0)
-fi | if [ "${#include_patterns[@]}" -gt 0 ]; then
-    while IFS= read -r file; do
-        for pattern in "${include_patterns[@]}"; do
-            if [[ "$file" =~ $pattern ]]; then
-                echo "$file"
+        done
+    else
+        find . -type f | sed 's#^\./##'
+    fi | while IFS= read -r file; do
+        # Skip if file matches any ignore pattern
+        local ignore=false
+        for pattern in "${ignore_patterns[@]}"; do
+            if matches_pattern "$file" "$pattern"; then
+                debug "File '$file' matches ignore pattern '$pattern'"
+                ignore=true
                 break
             fi
         done
-    done
-else
-    cat
-fi | sort
+        
+        if $ignore; then
+            debug "Ignoring file: $file"
+            continue
+        fi
+        
+        # Include file if no include patterns or if it matches any include pattern
+        if [ "${#include_patterns[@]}" -eq 0 ]; then
+            debug "Including file (no include patterns): $file"
+            echo "$file"
+        else
+            for pattern in "${include_patterns[@]}"; do
+                if matches_pattern "$file" "$pattern"; then
+                    debug "Including file (matches $pattern): $file"
+                    echo "$file"
+                    break
+                fi
+            done
+        fi
+    done | sort
+}
+
+# Enable extended globbing
+shopt -s extglob nullglob
+
+process_files
