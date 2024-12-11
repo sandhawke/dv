@@ -1,0 +1,10 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+if command -v packmime >/dev/null 2>&1; then
+    exec packmime "$@"
+else
+    # doesn't handle just-given paths :-(  or paths with spaces
+    files=$(dv-git-ls "$@") # args for ignore
+    dv-pack-mime $files
+fi

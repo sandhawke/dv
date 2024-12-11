@@ -1,0 +1,93 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-#!/bin/bash
+
+usage() {
+    echo "Usage: $0 [--include=pattern] [--ignore=pattern]..."
+    echo "Enumerates git tracked files plus included patterns, excluding ignored patterns"
+    echo "Patterns should be shell globs (e.g. *.txt, src/**, etc.)"
+    exit 1
+}
+
+# Initialize arrays to store patterns
+declare -a include_patterns=()
+declare -a ignore_patterns=()
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --include=*)
+            pattern="${1#*=}"
+            include_patterns+=("$pattern")
+            shift
+            ;;
+        --ignore=*)
+            pattern="${1#*=}"
+            ignore_patterns+=("$pattern")
+            shift
+            ;;
+        --help|-h)
+            usage
+            ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            ;;
+    esac
+done
+
+# Create temporary files
+temp_git=$(mktemp)
+temp_includes=$(mktemp)
+temp_all=$(mktemp)
+
+# Clean up temporary files on exit
+trap 'rm -f "$temp_git" "$temp_includes" "$temp_all"' EXIT
+
+# Get git tracked files
+git ls-files > "$temp_git"
+
+# Process include patterns
+if [ "${#include_patterns[@]}" -gt 0 ]; then
+    for pattern in "${include_patterns[@]}"; do
+        if [ -d "$pattern" ]; then
+            # For directories, include everything underneath
+            find "$pattern" -type f >> "$temp_includes"
+        else
+            # Use shell globbing for file patterns
+            shopt -s globstar nullglob
+            for file in $pattern; do
+                if [ -f "$file" ]; then
+                    echo "$file" >> "$temp_includes"
+                fi
+            done
+            shopt -u globstar nullglob
+        fi
+    done
+else
+    touch "$temp_includes"  # Create empty file if no includes
+fi
+
+# Combine git files and included files, sort and remove duplicates
+sort -u "$temp_git" "$temp_includes" > "$temp_all"
+
+# Process ignore patterns and output final results
+if [ "${#ignore_patterns[@]}" -gt 0 ]; then
+    # Process each file
+    while IFS= read -r file; do
+        # Check if file matches any ignore pattern
+        matched=0
+        for pattern in "${ignore_patterns[@]}"; do
+            if [[ "$file" == $pattern ]]; then
+                matched=1
+                break
+            fi
+        done
+        # Output file if it doesn't match any ignore patterns
+        if [ "$matched" -eq 0 ]; then
+            echo "$file"
+        fi
+    done < "$temp_all"
+else
+    # If no ignore patterns, output all files
+    cat "$temp_all"
+fi

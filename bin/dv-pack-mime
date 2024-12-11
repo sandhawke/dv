@@ -1,0 +1,59 @@
+#!/bin/bash
+
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+#!/bin/bash
+
+# Store paths in array
+paths=("$@")
+
+# Function to check if boundary exists in any file
+check_boundary() {
+    local boundary="$1"
+    local found=0
+    
+    for filepath in "${paths[@]}"; do
+        if [ -f "$filepath" ] && grep -q "$boundary" "$filepath"; then
+            found=1
+            break
+        fi
+    done
+    return $found
+}
+
+# Find a boundary that doesn't occur in any of the files
+boundary="cut-00"
+until check_boundary "$boundary"; do
+    echo $boundary
+    num=${boundary#cut-}
+    printf -v boundary "cut-%02d" $(( 10#$num + 1 ))
+done
+
+# Output the Content-Type header
+echo "Content-Type: multipart/mixed; boundary=\"$boundary\""
+echo
+
+# Process each file
+for filepath in "${paths[@]}"; do
+    if [ -f "$filepath" ]; then
+        # Get the filename from the path
+        filename=$(basename "$filepath")
+        
+        # Get the MIME type of the file
+        mimetype=$(file --mime-type -b "$filepath")
+        
+        # Output the part headers
+        echo "--$boundary"
+        echo "Content-Type: $mimetype"
+        echo "Content-Disposition: attachment; filename=\"$filename\""
+        echo
+        
+        # Output the file content
+        cat "$filepath"
+        echo
+    else
+        echo "Warning: $filepath not found or not a regular file" >&2
+    fi
+done
+
+# Output the final boundary
+echo "--$boundary--"
