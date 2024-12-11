@@ -107,11 +107,17 @@ sanitize_id() {
 }
 
 # created by https://claude.ai/chat/73cacb61-8443-4f63-b293-67e85ce028ef
+# consider asking it to add arrays, even associated arrays, as directories.
+#
+# warning - cannot return through sub-shells with parens
 read_named_returns() {
     local vars=()
     local file_names=()
     local cmd=""
     local parsing_vars=true
+    function log_debug() {
+        :
+    }
     
     # Parse arguments into vars and cmd
     for arg in "$@"; do
@@ -153,7 +159,8 @@ read_named_returns() {
     fi
     log_debug "Created temporary directory: $tmp_dir"
     
-    # Export directory for child process
+    # Export directory for child process, in a way that's safe for recursion
+    local save_nrd_value="${NAMED_RETURNS_DIR:-}"
     export NAMED_RETURNS_DIR="$tmp_dir"
     
     # Execute the command
@@ -171,16 +178,21 @@ read_named_returns() {
         log_debug "Processing return value - file: $file_name, var: $var"
         if [ -f "$file" ]; then
             log_debug "Reading value from $file into $var"
+            # printf -v "$var" $(cat "$file")
             # Use eval to set the variable in caller's scope
             eval "$var"'=$(cat "$file")'
+            # echo eval "$var"'=$(cat "$file")'
+            #s='echo value is "$'$var'"'
+            #eval $s
         else
             log_debug "File $file not found, clearing $var"
             # Clear the variable if file doesn't exist
             eval "$var="
         fi
     done
-    
+
     # Clean up
+    NAMED_RETURNS_DIR="$save_nrd_value"
     log_debug "Removing temporary directory: $tmp_dir"
     rm -rf "$tmp_dir"
     
@@ -193,6 +205,10 @@ write_named_returns() {
         log_debug "NAMED_RETURNS_DIR not set, skipping write_named_returns"
         return 0
     fi
+
+    function log_debug() {
+        :
+    }
     
     log_debug "Writing named returns to directory: $NAMED_RETURNS_DIR"
     
@@ -220,4 +236,12 @@ write_named_returns() {
             log_debug "Variable $var_name is empty or unset, skipping"
         fi
     done
+}
+
+using_named_returns() {
+    if [ -z "${NAMED_RETURNS_DIR:-}" ]; then
+        return 1
+    else
+        return 0
+    fi
 }

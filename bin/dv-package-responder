@@ -96,6 +96,7 @@ $(<"$sub/guide.md")$trailer
 _END
         responded "$filename" "$outfile" "maker"
     else
+        local outfile="team-notes/package-error-$$-$$.md"
         cat > "$outfile" << _END
 Unfortunately, our package search and creation service reports being unable to find or create a package to meet the below request. Consider refactoring and submitting a simpler request or one which better aligns with things existing packages do.
 

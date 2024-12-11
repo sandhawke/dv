@@ -40,7 +40,7 @@ function assert() {
 function end_of_test() {
     echo 'end_of_test reached - test ran to completion' > "$TMP/end_of_test"
     # leave files around for diagnosis
-    if [[ $asserts_passed = 0 && $asserts_failes = 0 ]]; then
+    if [[ $asserts_passed = 0 && $asserts_failed = 0 ]]; then
         echo >&2 "no assertions were run in this test - that's a fail"
         exit 1
     fi

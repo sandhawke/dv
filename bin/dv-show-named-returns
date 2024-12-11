@@ -1,0 +1,11 @@
+#!/bin/bash
+source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-
+
+export NAMED_RETURNS_DIR=$(mktemp -d)
+eval "$@"
+
+cd "$NAMED_RETURNS_DIR"
+for var in *; do
+    echo "$var:" $(< "$var")
+done
+

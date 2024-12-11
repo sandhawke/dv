@@ -22,6 +22,7 @@ git add docs/specification.md && git commit -q -m'spec passed in by caller'
 
 dv-implement
 
+
 function generate_guide() {
     rm -rf _to_developer
     for try in {1..4}; do
@@ -36,7 +37,16 @@ function generate_guide() {
     exit 1
 }
 
-generate_guide > "$state/guide.md"
-basename "$PWD" > "$state/name"
-echo "$PWD" > "$state/absolute_path"
-realpath --relative-to="$start_dir" -m "$PWD" > > "$state/relative_path"
+
+status="$(dv-test)"
+log_debug "dv-test at end of package-make: '$status'"
+if [[ $status = "pass" ]]; then
+    generate_guide > "$state/guide.md"
+    basename "$PWD" > "$state/name"
+    echo "$PWD" > "$state/absolute_path"
+    realpath --relative-to="$start_dir" -m "$PWD" > "$state/relative_path"
+else
+    # should we write a report of what went wrong?
+    echo "$PWD" > "$state/absolute_path"
+    log_warning 'Did not pass all tests - MAYBE we should lower the bar a little'
+fi
