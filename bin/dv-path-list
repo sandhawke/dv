@@ -4,58 +4,72 @@ source $(dv-path lib/common.sh) # -*-mode: sh-mode -*-#!/bin/bash
 
 usage() {
     echo "Usage: $0 [files/directories] [--include=pattern] [--ignore=pattern]..."
-    echo "If no files/directories provided, scans current directory"
-    echo "Automatically loads patterns from .gitignore and .dv/nopack.txt if they exist"
+    echo
+    echo "Lists files, applying gitignore-style pattern matching."
+    echo
+    echo "If no files/directories provided, scans current directory."
+    echo "Automatically loads patterns from .gitignore and .dv/nopack.txt if they exist."
+    echo
+    echo "Options:"
+    echo "  --include=PATTERN  Include additional files matching PATTERN"
+    echo "  --ignore=PATTERN   Ignore additional files matching PATTERN"
+    echo "  --help, -h        Show this help message"
+    echo
     echo "Patterns follow .gitignore format:"
-    echo "  - '*' matches anything except '/'"
-    echo "  - '**' matches zero or more directories"
-    echo "  - leading '/' anchors to root"
-    echo "  - trailing '/' matches directories"
-    echo "  - simple patterns match recursively"
+    echo "  *        Matches any text except /"
+    echo "  **       Matches any text including /"
+    echo "  /foo     Matches foo at root level"
+    echo "  foo/     Matches directories"
+    echo "  *.txt    Matches all .txt files"
     exit 1
 }
 
 # Convert gitignore pattern to regex
 pattern_to_regex() {
     local pattern=$1
-    local regex=""
     
     # Skip empty lines and comments
     [[ -z "$pattern" || "$pattern" == \#* ]] && return
     
-    # Handle leading slash
+    # Clean pattern of carriage returns
+    pattern="${pattern//[$'\r']/}"
+    
+    # Build the regex pattern piece by piece
+    local regex=""
+    
+    # Handle leading pattern
     if [[ $pattern == /* ]]; then
         regex="^"
         pattern="${pattern#/}"
     else
-        regex="^(?:.*/)??"
+        regex="^.*/"
     fi
     
-    # Handle trailing slash
-    if [[ $pattern == */ ]]; then
-        pattern="${pattern%/}"
-        local trailing_slash="/"
-    else
-        local trailing_slash="/??"
-    fi
+    # Handle the main pattern, special characters first
+    pattern="${pattern//./\\.}"   # Escape dots
+    pattern="${pattern//\*\*/.*}" # Convert ** to .*
+    pattern="${pattern//\*/[^/]*}" # Convert * to [^/]*
     
-    # Convert pattern to regex
-    pattern="${pattern//\./\\.}"  # Escape dots
-    pattern="${pattern//\*/[^/]*}"  # Convert * to non-slash matching
-    pattern="${pattern//\*\*/.*}"   # Convert ** back to general matching
+    # Add the pattern to regex
+    regex="${regex}${pattern}"
     
-    echo "${regex}${pattern}${trailing_slash}\$"
+    # Add end anchor
+    regex="${regex}$"
+    
+    echo "$regex"
 }
 
 # Load patterns from a file
 load_patterns() {
     local file=$1
-    local -n patterns=$2  # nameref to array
+    local -n patterns=$2
     
     if [[ -f "$file" ]]; then
         while IFS= read -r pattern; do
-            local regex=$(pattern_to_regex "$pattern")
-            [[ -n "$regex" ]] && patterns+=("$regex")
+            if [[ -n "$pattern" && "$pattern" != \#* ]]; then
+                local regex=$(pattern_to_regex "$pattern")
+                [[ -n "$regex" ]] && patterns+=("$regex")
+            fi
         done < "$file"
     fi
 }
@@ -88,7 +102,7 @@ while [[ $# -gt 0 ]]; do
             usage
             ;;
         --*)
-            echo "Unknown option: $1"
+            echo "Unknown option: $1" >&2
             usage
             ;;
         *)
@@ -98,64 +112,52 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Create temporary files
-temp_base=$(mktemp)
-temp_includes=$(mktemp)
-temp_all=$(mktemp)
+# Function to check if a file should be ignored
+should_ignore() {
+    local file=$1
+    for pattern in "${ignore_patterns[@]}"; do
+        if [[ "$file" =~ $pattern ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
 
-# Clean up temporary files on exit
-trap 'rm -f "$temp_base" "$temp_includes" "$temp_all"' EXIT
-
-# Get base files list
+# Process files
 if [ "${#base_paths[@]}" -gt 0 ]; then
-    # Process provided files and directories
     for path in "${base_paths[@]}"; do
         if [ -f "$path" ]; then
-            echo "$path"
+            if ! should_ignore "$path"; then
+                echo "$path"
+            fi
         elif [ -d "$path" ]; then
-            find "$path" -type f
+            while IFS= read -r -d '' file; do
+                # Remove leading ./
+                file="${file#./}"
+                if ! should_ignore "$file"; then
+                    echo "$file"
+                fi
+            done < <(find "$path" -type f -print0)
         else
             echo "Warning: '$path' not found" >&2
         fi
-    done > "$temp_base"
+    done
 else
-    # No paths provided, scan current directory
-    find . -type f > "$temp_base"
-fi
-
-# Process include patterns
-if [ "${#include_patterns[@]}" -gt 0 ]; then
+    while IFS= read -r -d '' file; do
+        file="${file#./}"
+        if ! should_ignore "$file"; then
+            echo "$file"
+        fi
+    done < <(find . -type f -print0)
+fi | if [ "${#include_patterns[@]}" -gt 0 ]; then
     while IFS= read -r file; do
         for pattern in "${include_patterns[@]}"; do
             if [[ "$file" =~ $pattern ]]; then
-                echo "$file" >> "$temp_includes"
+                echo "$file"
                 break
             fi
         done
-    done < <(find . -type f)
+    done
 else
-    touch "$temp_includes"
-fi
-
-# Combine base files and included files, sort and remove duplicates
-sort -u "$temp_base" "$temp_includes" > "$temp_all"
-
-# Process ignore patterns and output final results
-if [ "${#ignore_patterns[@]}" -gt 0 ]; then
-    while IFS= read -r file; do
-        # Check if file matches any ignore pattern
-        matched=0
-        for pattern in "${ignore_patterns[@]}"; do
-            if [[ "$file" =~ $pattern ]]; then
-                matched=1
-                break
-            fi
-        done
-        # Output file if it doesn't match any ignore patterns
-        if [ "$matched" -eq 0 ]; then
-            echo "$file"
-        fi
-    done < "$temp_all"
-else
-    cat "$temp_all"
-fi
+    cat
+fi | sort
